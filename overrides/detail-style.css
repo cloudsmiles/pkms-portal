@@ -226,44 +226,44 @@ th { color: #fff; background: var(--detail-accent-dark); font-weight: 700; }
     --detail-page-gap: 10px;
     --detail-panel-gap: 10px;
     --detail-control-height: 42px;
-    --detail-body-size: 14px;
-    --detail-small-size: 11px;
-    --detail-table-size: 13px;
+    --detail-body-size: 16px;
+    --detail-small-size: 13px;
+    --detail-table-size: 14px;
   }
-  body { padding: 12px var(--detail-page-gap) 28px; }
+  body { padding: 12px var(--detail-page-gap) 28px; line-height: 1.65; }
   .grid, body > div.text { padding: 14px; }
   .detail-back { margin-bottom: 10px; }
   .title-row { gap: 7px; }
-  .title, .title-row input, .title-row select { flex: 1 1 calc(50% - 7px); min-width: 0; font-size: 13px; }
+  .title, .title-row input, .title-row select { flex: 1 1 calc(50% - 7px); min-width: 0; font-size: 15px; }
   .title-row span.title { flex: 1 1 100%; }
   #panel-level { flex: 0 0 auto; margin-inline: auto; text-align: center; }
   #energy, #orb, #releaseItemSet { flex: 1 1 100%; max-width: 100%; overflow-wrap: anywhere; white-space: normal; text-align: center; }
   #grid { margin-top: 16px; }
   #skill, #effect { padding: 10px 11px; }
   table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-  table td, table th { min-width: 70px; }
+  table td, table th { min-width: 76px; }
   .content > div > table:first-child { display: table; white-space: normal; }
   .content > div > table:first-child { width: 100%; table-layout: fixed; overflow: hidden; }
   .content > div > table:first-child td,
   .content > div > table:first-child th { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; word-break: break-all; }
-  .content > div > table:first-child th { font-size: 14px; line-height: 1.45; }
-  .content > div > table:first-child tr:nth-child(2) td { font-size: 11px; }
-  .content > div > table:first-child tr:nth-child(3) td { font-size: 14px; }
+  .content > div > table:first-child th { font-size: 15px; line-height: 1.5; }
+  .content > div > table:first-child tr:nth-child(2) td { font-size: 13px; }
+  .content > div > table:first-child tr:nth-child(3) td { font-size: 16px; }
   .ap-btn { float: none; display: block; width: 100%; margin: 8px 0 0; }
   .team { white-space: normal; }
   .team { display: table !important; width: 100%; table-layout: fixed; overflow: hidden; }
-  .team td { min-width: 0; width: 33.333%; padding: 7px 4px; font-size: var(--detail-small-size); overflow-wrap: anywhere; word-break: break-all; white-space: normal; }
+  .team td { min-width: 0; width: 33.333%; padding: 8px 5px; font-size: var(--detail-small-size); overflow-wrap: anywhere; word-break: break-all; white-space: normal; }
 }
 
 @media (max-width: 420px) {
-  :root { --detail-control-height: 40px; --detail-table-size: 12px; }
+  :root { --detail-control-height: 40px; --detail-table-size: 14px; --detail-small-size: 12px; }
   .title, .title-row input, .title-row select { flex-basis: 100%; }
   #panel-level { flex-basis: auto; margin-inline: auto; }
   #grid { margin-right: -2px; margin-left: -2px; width: calc(100% + 4px) !important; }
-  .tab li a { padding: 9px 13px; font-size: 13px; }
-  .team td { padding: 6px 3px; font-size: 10px; line-height: 1.4; }
-  .content > div > table:first-child th { font-size: 13px; }
-  .content > div > table:first-child tr:nth-child(3) td { font-size: 13px; }
+  .tab li a { padding: 9px 13px; font-size: 14px; }
+  .team td { padding: 7px 4px; font-size: var(--detail-small-size); line-height: 1.5; }
+  .content > div > table:first-child th { font-size: 14px; }
+  .content > div > table:first-child tr:nth-child(3) td { font-size: 15px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

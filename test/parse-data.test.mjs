@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parseEventRecords, getEventStatus } from '../scripts/parse-data.mjs';
 import { getProjectDir } from '../scripts/project-path.mjs';
 import { injectDetailAssets } from '../scripts/build-data.mjs';
@@ -12,9 +13,15 @@ test('默认使用 portal 内的 Sync-Grid 子模块，也支持环境变量覆�
 test('详情页覆盖资源注入可重复执行', () => {
   const html = '<html><head></head><body></body></html>';
   const injected = injectDetailAssets(html);
+  assert.match(injected, /<meta name="viewport" content="width=device-width, initial-scale=1">/);
   assert.match(injected, /detail-style\.css/);
   assert.match(injected, /detail-ui\.js/);
   assert.equal(injectDetailAssets(injected), injected);
+});
+
+test('详情页返回链接会回到门户主页', async () => {
+  const script = await readFile(new URL('../overrides/detail-ui.js', import.meta.url), 'utf8');
+  assert.match(script, /back\.href\s*=\s*['\"]\.\.\/\.\.\/index\.html['\"]/);
 });
 
 test('解析拍組連結時保留分類、名稱、圖片與網址', () => {

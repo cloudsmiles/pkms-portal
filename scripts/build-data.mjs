@@ -8,7 +8,8 @@ const portalDir = resolve(import.meta.dirname, '..');
 const staticFiles = ['index.html', 'styles.css', 'app.js', 'ui-helpers.mjs', 'web-path.mjs'];
 
 export function injectDetailAssets(html) {
-  const withStyle = html.includes('detail-style.css') ? html : html.replace('</head>', '  <link rel="stylesheet" href="./detail-style.css">\n</head>');
+  const withViewport = /<meta\s+[^>]*name=["']viewport["']/i.test(html) ? html : html.replace('</head>', '  <meta name="viewport" content="width=device-width, initial-scale=1">\n</head>');
+  const withStyle = withViewport.includes('detail-style.css') ? withViewport : withViewport.replace('</head>', '  <link rel="stylesheet" href="./detail-style.css">\n</head>');
   return withStyle.includes('detail-ui.js') ? withStyle : withStyle.replace('</head>', '  <script src="./detail-ui.js" defer></script>\n</head>');
 }
 

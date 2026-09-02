@@ -5,7 +5,7 @@
 
   const back = document.createElement('a');
   back.className = 'detail-back';
-  back.href = '../portal/index.html';
+  back.href = '../../index.html';
   back.textContent = '返回拍組圖鑑';
   document.body.insertBefore(back, document.body.firstElementChild);
 
