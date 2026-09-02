@@ -3,6 +3,36 @@ import assert from 'node:assert/strict';
 import * as uiHelpers from '../ui-helpers.mjs';
 const { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, sortPairs } = uiHelpers;
 import { sourcePath } from '../web-path.mjs';
+import { readFileSync } from 'node:fs';
+
+test('篩選數量不包含排序與每頁數量', () => {
+  assert.equal(uiHelpers.getActiveFilterCount({
+    query: '小智', category: '攻擊型', attribute: '火', role: 'all',
+    limitedTag: 'all', date: 'all', status: 'all', sort: 'name-asc', pageSize: 48
+  }), 3);
+});
+
+test('屬性選擇器提供全部屬性與完整屬性清單', () => {
+  assert.deepEqual(uiHelpers.getAttributeOptions(), ['all', ...uiHelpers.pairAttributes]);
+});
+
+test('下拉選項使用精簡且一致的顯示文案', () => {
+  assert.equal(uiHelpers.getFilterOptionLabel('attribute', '草'), '草');
+  assert.equal(uiHelpers.getFilterOptionLabel('role', '物理攻擊型'), '物攻');
+  assert.equal(uiHelpers.getFilterOptionLabel('status', 'all'), '全部');
+  assert.equal(uiHelpers.getFilterOptionLabel('pageSize', '12'), '12 筆');
+});
+
+test('排序與每頁數量的預設值不算篩選啟用', () => {
+  assert.equal(uiHelpers.isFilterActive('sort', 'base-desc'), false);
+  assert.equal(uiHelpers.isFilterActive('pageSize', '12'), false);
+  assert.equal(uiHelpers.isFilterActive('attribute', '草'), true);
+});
+
+test('自訂下拉不使用 label 包裹互動控制項', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.equal(/<label class="select-box custom-select/.test(html), false);
+});
 
 test('子模組部署時將資料來源連結指向 sync-grid', () => {
   assert.equal(sourcePath('./grids/小智&皮卡丘.html'), './sync-grid/grids/小智&皮卡丘.html');

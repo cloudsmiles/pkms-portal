@@ -1,4 +1,4 @@
-import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, getPairRoleLabel, matchesPairRole, pairAttributes, sortPairs } from './ui-helpers.mjs';
+import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, getPairRoleLabel, matchesPairRole, pairAttributes, sortPairs, getAttributeOptions, getActiveFilterCount, getFilterOptionLabel, isFilterActive } from './ui-helpers.mjs';
 import { sourcePath } from './web-path.mjs';
 
 (() => {
@@ -10,6 +10,8 @@ import { sourcePath } from './web-path.mjs';
   const attributeClass = (attribute) => `attribute-${Math.max(0, pairAttributes.indexOf(attribute))}`;
   const formatDate = (value) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric' }).format(new Date(value));
   const eventStatus = (event) => { const now = new Date(); const start = new Date(event.start); const end = new Date(event.end); return now < start ? 'upcoming' : now > end ? 'ended' : 'active'; };
+  const filterLabels = { query: '搜尋', category: '分類', attribute: '屬性', role: '攻擊方式', limitedTag: '限定標籤', date: '日期', status: '狀態' };
+  const filterElements = { category: 'category-filter', role: 'role-filter', limitedTag: 'limited-tag-filter', date: 'date-filter', status: 'status-filter' };
 
   function filteredRecords() {
     const query = state.query.trim().toLocaleLowerCase();
@@ -52,6 +54,54 @@ import { sourcePath } from './web-path.mjs';
     pagination.innerHTML = buttons.join('');
   }
 
+  function renderCustomSelects() {
+    document.querySelectorAll('.custom-select').forEach((container) => {
+      const select = container.querySelector('select');
+      const key = container.dataset.filter;
+      let trigger = container.querySelector('.select-trigger');
+      let menu = container.querySelector('.select-menu');
+      if (!trigger) {
+        trigger = document.createElement('button');
+        trigger.className = 'select-trigger';
+        trigger.type = 'button';
+        trigger.setAttribute('aria-haspopup', 'listbox');
+        container.insertBefore(trigger, select);
+        menu = document.createElement('div');
+        menu.className = `select-menu${key === 'attribute' ? ' attribute-menu' : ''}`;
+        menu.setAttribute('role', 'listbox');
+        menu.hidden = true;
+        container.append(menu);
+        select.classList.add('visually-hidden');
+        select.tabIndex = -1;
+        select.setAttribute('aria-hidden', 'true');
+      }
+      const selected = select.options[select.selectedIndex];
+      trigger.innerHTML = `<strong>${escapeHtml(getFilterOptionLabel(key, selected?.value || 'all'))}</strong><i class="select-chevron" aria-hidden="true"></i>`;
+      trigger.setAttribute('aria-expanded', String(!menu.hidden));
+      menu.innerHTML = [...select.options].map((option) => {
+        const isSelected = option.value === select.value;
+        const optionClass = key === 'attribute' && option.value !== 'all' ? attributeClass(option.value) : '';
+        return `<button class="select-option ${optionClass} ${isSelected ? 'is-selected' : ''}" type="button" role="option" aria-selected="${isSelected}" data-value="${escapeHtml(option.value)}"><span>${escapeHtml(getFilterOptionLabel(key, option.value))}</span>${isSelected ? '<span class="option-check" aria-hidden="true">✓</span>' : ''}</button>`;
+      }).join('');
+    });
+  }
+
+  function initializeCustomSelects() {
+    renderCustomSelects();
+  }
+
+  function renderActiveFilters() {
+    const active = ['query', 'category', 'attribute', 'role', 'limitedTag', 'date', 'status']
+      .filter((key) => state[key] && state[key] !== 'all');
+    $('#clear-filters').textContent = getActiveFilterCount(state) ? `清除篩選（${getActiveFilterCount(state)}）` : '清除篩選';
+    $('#active-filters').innerHTML = active.length
+      ? `<span class="active-filters-label">目前篩選</span>${active.map((key) => {
+        const value = key === 'query' ? `「${escapeHtml(state[key])}」` : escapeHtml(getFilterOptionLabel(key, state[key]));
+        return `<button class="active-filter" type="button" data-clear-filter="${key}">${filterLabels[key]}：${value}<span aria-hidden="true">×</span></button>`;
+      }).join('')}`
+      : '';
+  }
+
   function render() {
     const records = filteredRecords();
     const totalPages = Math.max(1, Math.ceil(records.length / state.pageSize));
@@ -74,6 +124,12 @@ import { sourcePath } from './web-path.mjs';
     renderPagination(totalPages);
     $('#section-title').textContent = state.tab === 'pairs' ? '拍組圖鑑' : '活動日志';
     $('#section-kicker').textContent = state.tab === 'pairs' ? 'PAIR INDEX' : 'EVENT LOG';
+    document.querySelectorAll('.custom-select').forEach((control) => {
+      const select = control.querySelector('select');
+      control.classList.toggle('is-active', isFilterActive(control.dataset.filter, select.value));
+    });
+    renderCustomSelects();
+    renderActiveFilters();
     document.querySelectorAll('.pair-only').forEach((control) => {
       const isPairToolbarControl = ['sort', 'limited'].includes(control.dataset.filter);
       control.hidden = state.tab !== 'pairs' || (!isPairToolbarControl && !getViewFilters(state.tab).includes(control.dataset.filter));
@@ -98,12 +154,70 @@ import { sourcePath } from './web-path.mjs';
     ['category-filter', 'attribute-filter', 'role-filter', 'limited-tag-filter', 'date-filter', 'status-filter', 'sort-filter'].forEach((id) => { $(`#${id}`).value = id === 'sort-filter' ? 'base-desc' : 'all'; });
     render();
   });
+  $('#toolbar').addEventListener('click', (event) => {
+    const trigger = event.target.closest('.select-trigger');
+    const option = event.target.closest('.select-option');
+    if (option) {
+      const menu = option.closest('.select-menu');
+      const container = option.closest('.custom-select');
+      const select = container.querySelector('select');
+      menu.hidden = true;
+      container.querySelector('.select-trigger').setAttribute('aria-expanded', 'false');
+      select.value = option.dataset.value;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      return;
+    }
+    if (!trigger) return;
+    const menu = trigger.parentElement.querySelector('.select-menu');
+    document.querySelectorAll('.select-menu').forEach((other) => { if (other !== menu) other.hidden = true; });
+    menu.hidden = !menu.hidden;
+    trigger.setAttribute('aria-expanded', String(!menu.hidden));
+    if (!menu.hidden) menu.querySelector('.is-selected')?.focus();
+  });
+  $('#toolbar').addEventListener('keydown', (event) => {
+    const menu = event.target.closest('.select-menu');
+    if (!menu) return;
+    const options = [...menu.querySelectorAll('.select-option')];
+    const currentIndex = options.indexOf(document.activeElement);
+    if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(event.key)) return;
+    event.preventDefault();
+    const direction = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1;
+    options[(currentIndex + direction + options.length) % options.length].focus();
+  });
+  $('#active-filters').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-clear-filter]');
+    if (!button) return;
+    const key = button.dataset.clearFilter;
+    state[key] = '';
+    if (key !== 'query') state[key] = 'all';
+    if (key === 'query') $('#search').value = '';
+    else if (key === 'attribute') $('#attribute-filter').value = 'all';
+    else $(`#${filterElements[key]}`).value = 'all';
+    state.page = 1;
+    render();
+  });
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.custom-select')) document.querySelectorAll('.select-menu').forEach((menu) => {
+      menu.hidden = true;
+      menu.closest('.custom-select')?.querySelector('.select-trigger')?.setAttribute('aria-expanded', 'false');
+    });
+  });
+  document.addEventListener('keydown', (event) => {
+    const openMenu = [...document.querySelectorAll('.select-menu')].find((menu) => !menu.hidden);
+    if (event.key === 'Escape' && openMenu) {
+      openMenu.hidden = true;
+      const trigger = openMenu.closest('.custom-select').querySelector('.select-trigger');
+      trigger.setAttribute('aria-expanded', 'false');
+      trigger.focus();
+    }
+  });
   $('#pagination').addEventListener('click', (event) => { const page = Number(event.target.dataset.page); if (page) { state.page = page; render(); window.scrollTo({ top: 300, behavior: 'smooth' }); } });
   $('#pair-count').textContent = data.pairs.length; $('#event-count').textContent = data.events.length;
-  $('#category-filter').innerHTML = ['<option value="all">全部分類</option>', ...getPairCategories(data.pairs).map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)].join('');
-  $('#attribute-filter').innerHTML = ['<option value="all">全部屬性</option>', ...pairAttributes.map((attribute) => `<option value="${attribute}">${attribute}</option>`)].join('');
-  $('#role-filter').innerHTML = ['<option value="all">全部攻擊方式</option>', ...getPairRoles(data.pairs).map((role) => `<option value="${escapeHtml(role)}">${escapeHtml(role)}</option>`)].join('');
-  $('#limited-tag-filter').innerHTML = ['<option value="all">全部限定標籤</option>', ...getPairLimitedTags(data.pairs).map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`)].join('');
-  $('#date-filter').innerHTML = ['<option value="all">全部日期</option>', ...[...new Set(data.events.map((event) => event.start.slice(0, 10)))].map((date) => `<option value="${date}">${date.replaceAll('-', '/')}</option>`)].join('');
+  $('#category-filter').innerHTML = ['<option value="all">全部</option>', ...getPairCategories(data.pairs).map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)].join('');
+  $('#attribute-filter').innerHTML = getAttributeOptions().map((attribute) => `<option value="${attribute}">${escapeHtml(getFilterOptionLabel('attribute', attribute))}</option>`).join('');
+  $('#role-filter').innerHTML = ['<option value="all">全部</option>', ...getPairRoles(data.pairs).map((role) => `<option value="${escapeHtml(role)}">${escapeHtml(getFilterOptionLabel('role', role))}</option>`)].join('');
+  $('#limited-tag-filter').innerHTML = ['<option value="all">全部</option>', ...getPairLimitedTags(data.pairs).map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`)].join('');
+  $('#date-filter').innerHTML = ['<option value="all">全部</option>', ...[...new Set(data.events.map((event) => event.start.slice(0, 10)))].map((date) => `<option value="${date}">${date.replaceAll('-', '/')}</option>`)].join('');
+  initializeCustomSelects();
   render();
 })();

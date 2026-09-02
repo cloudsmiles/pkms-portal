@@ -43,3 +43,25 @@ export function sortPairs(pairs, mode = 'base-desc') {
 }
 
 export const pairAttributes = ['一般', '火', '水', '電', '草', '冰', '格鬥', '毒', '地面', '飛行', '超能力', '蟲', '岩石', '幽靈', '龍', '惡', '鋼', '妖精'];
+
+export function getAttributeOptions() {
+  return ['all', ...pairAttributes];
+}
+
+export function getActiveFilterCount(state) {
+  return ['query', 'category', 'attribute', 'role', 'limitedTag', 'date', 'status']
+    .filter((key) => state[key] && state[key] !== 'all').length;
+}
+
+export function getFilterOptionLabel(filter, value) {
+  if (value === 'all') return '全部';
+  if (filter === 'attribute') return value;
+  if (filter === 'role') return value === '物理攻擊型' ? '物攻' : value === '特殊攻擊型' ? '特攻' : value;
+  if (filter === 'sort') return { 'base-desc': '白值高→低', 'base-asc': '白值低→高', 'name-asc': '名稱 A→Z', 'name-desc': '名稱 Z→A' }[value] || value;
+  if (filter === 'pageSize') return `${value} 筆`;
+  return value;
+}
+
+export function isFilterActive(filter, value) {
+  return !['sort', 'pageSize'].includes(filter) && value !== 'all';
+}
