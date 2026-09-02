@@ -59,9 +59,24 @@ test('從拍組詳情底部標籤解析屬性', () => {
   assert.deepEqual(parsePairAttributes(grid), ['飛行', '水']);
 });
 
-test('從拍組詳情體系欄位解析攻擊方式', () => {
-  const grid = '<table><tr><td>體系</td><td>EX體系</td><td>弱點</td></tr><tr><td>技術型</td><td>特殊攻擊型</td><td>岩石</td></tr></table>';
+test('攻擊型從拍組詳情體系欄位解析攻擊方式', () => {
+  const grid = '<table><tr><td>體系</td><td>EX體系</td><td>弱點</td></tr><tr><td>攻擊型</td><td>特殊攻擊型</td><td>岩石</td></tr></table>';
   assert.equal(parsePairRole(grid), '特殊攻擊型');
+});
+
+test('明確標示物攻的攻擊型不依招式重新推導', () => {
+  const grid = '<table><tr><td>體系</td><td>EX體系</td></tr><tr><td>物理攻擊型</td><td>技術型</td></tr></table><table class="move"><tr><td>分類</td><td>特殊</td></tr></table>';
+  assert.equal(parsePairRole(grid), '物理攻擊型');
+});
+
+test('非攻擊型依招式分類推導物攻、特攻或雙攻', () => {
+  const physical = '<table><tr><td>體系</td><td>EX體系</td></tr><tr><td>技術型</td><td>輔助型</td></tr></table><table class="move"><tr><td>分類</td><td>物理</td></tr></table>';
+  const special = '<table><tr><td>體系</td><td>EX體系</td></tr><tr><td>場地型</td><td>技術型</td></tr></table><table class="move"><tr><td>分類</td><td>特殊</td></tr></table>';
+  const mixed = '<table><tr><td>體系</td><td>EX體系</td></tr><tr><td>複合型</td><td>技術型</td></tr></table><table class="move"><tr><td>分類</td><td>物理</td></tr></table><table class="move"><tr><td>分類</td><td>特殊</td></tr></table>';
+
+  assert.equal(parsePairRole(physical), '物理攻擊型');
+  assert.equal(parsePairRole(special), '特殊攻擊型');
+  assert.equal(parsePairRole(mixed), '雙攻型');
 });
 
 test('只從基本資料標題解析限定標籤，不包含拍組搜尋', () => {

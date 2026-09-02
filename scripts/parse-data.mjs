@@ -22,7 +22,16 @@ export function parsePairRole(html) {
   if (headerIndex < 0 || !rows[headerIndex + 1]) return '';
   const cells = [...rows[headerIndex + 1][1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)];
   const roles = ['特殊攻擊型', '物理攻擊型'];
-  return roles.find((role) => cells.slice(0, 2).some((cell) => stripTags(cell[1]).replace(/\s+/g, '').includes(role))) ?? '';
+  const systems = cells.slice(0, 2).map((cell) => stripTags(cell[1]).replace(/\s+/g, ''));
+  const explicitRole = roles.find((role) => systems.some((system) => system.includes(role)));
+  if (explicitRole) return explicitRole;
+
+  const moveTables = [...html.matchAll(/<table[^>]*class="[^"]*\bmove\b[^"]*"[^>]*>([\s\S]*?)<\/table>/gi)];
+  const moveCategories = new Set(moveTables.flatMap((table) => [...table[1].matchAll(/<tr[^>]*>\s*<td[^>]*>\s*分類\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/gi)].map((match) => stripTags(match[1]).replace(/\s+/g, ''))));
+  if (moveCategories.has('物理') && moveCategories.has('特殊')) return '雙攻型';
+  if (moveCategories.has('物理')) return '物理攻擊型';
+  if (moveCategories.has('特殊')) return '特殊攻擊型';
+  return '';
 }
 
 export function parsePairLimitedTag(html) {

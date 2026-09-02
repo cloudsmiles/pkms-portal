@@ -15,7 +15,18 @@ export function getPairCategories(pairs) {
 }
 
 export function getPairRoles(pairs) {
-  return ['特殊攻擊型', '物理攻擊型'].filter((role) => pairs.some((pair) => pair.role === role));
+  return ['特殊攻擊型', '物理攻擊型'].filter((role) => pairs.some((pair) => matchesPairRole(pair, role)));
+}
+
+export function matchesPairRole(pair, role) {
+  return pair.role === role || pair.role === '雙攻型';
+}
+
+export function getPairRoleLabel(role) {
+  if (role === '物理攻擊型') return '物攻';
+  if (role === '特殊攻擊型') return '特攻';
+  if (role === '雙攻型') return '物攻／特攻';
+  return '';
 }
 
 export function getPairLimitedTags(pairs) {

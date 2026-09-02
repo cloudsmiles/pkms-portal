@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, sortPairs } from '../ui-helpers.mjs';
+import * as uiHelpers from '../ui-helpers.mjs';
+const { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, sortPairs } = uiHelpers;
 import { sourcePath } from '../web-path.mjs';
 
 test('子模組部署時將資料來源連結指向 sync-grid', () => {
@@ -20,7 +21,19 @@ test('拍組與活動使用各自的篩選項', () => {
 });
 
 test('攻擊方式篩選只顯示詳情頁存在的類型', () => {
-  assert.deepEqual(getPairRoles([{ role: '特殊攻擊型' }, { role: '物理攻擊型' }, { role: '' }]), ['特殊攻擊型', '物理攻擊型']);
+  assert.deepEqual(getPairRoles([{ role: '雙攻型' }]), ['特殊攻擊型', '物理攻擊型']);
+});
+
+test('雙攻型同時符合物攻與特攻篩選', () => {
+  assert.equal(uiHelpers.matchesPairRole({ role: '雙攻型' }, '物理攻擊型'), true);
+  assert.equal(uiHelpers.matchesPairRole({ role: '雙攻型' }, '特殊攻擊型'), true);
+  assert.equal(uiHelpers.matchesPairRole({ role: '物理攻擊型' }, '特殊攻擊型'), false);
+});
+
+test('攻擊方式標籤使用精簡文案', () => {
+  assert.equal(uiHelpers.getPairRoleLabel('物理攻擊型'), '物攻');
+  assert.equal(uiHelpers.getPairRoleLabel('特殊攻擊型'), '特攻');
+  assert.equal(uiHelpers.getPairRoleLabel('雙攻型'), '物攻／特攻');
 });
 
 test('拍組列表支援白值與名稱排序', () => {

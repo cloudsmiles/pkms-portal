@@ -1,4 +1,4 @@
-import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, pairAttributes, sortPairs } from './ui-helpers.mjs';
+import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, getPairRoleLabel, matchesPairRole, pairAttributes, sortPairs } from './ui-helpers.mjs';
 import { sourcePath } from './web-path.mjs';
 
 (() => {
@@ -19,7 +19,7 @@ import { sourcePath } from './web-path.mjs';
       const matchesQuery = !query || text.toLocaleLowerCase().includes(query);
       const matchesCategory = state.tab === 'events' || state.category === 'all' || record.category === state.category;
       const matchesAttribute = state.tab === 'events' || state.attribute === 'all' || record.attributes?.includes(state.attribute);
-      const matchesRole = state.tab === 'events' || state.role === 'all' || record.role === state.role;
+      const matchesRole = state.tab === 'events' || state.role === 'all' || matchesPairRole(record, state.role);
       const matchesLimitedTag = state.tab === 'events' || state.limitedTag === 'all' || record.limitedTag === state.limitedTag;
       const matchesDate = state.tab === 'pairs' || state.date === 'all' || record.start.slice(0, 10) === state.date;
       const matchesStatus = state.tab === 'pairs' || state.status === 'all' || eventStatus(record) === state.status;
@@ -35,7 +35,7 @@ import { sourcePath } from './web-path.mjs';
   const exToggleMarkup = (record) => `<button class="ex-toggle" type="button" data-normal-image="${sourcePath(record.image)}" data-ex-image="${sourcePath(record.exImage)}" ${record.exImage ? '' : 'disabled'} aria-label="${record.exImage ? '目前為普通頭像，點擊切換到★6 EX' : '沒有★6 EX頭像'}" title="${record.exImage ? '目前為普通頭像，點擊切換到★6 EX' : '沒有★6 EX頭像'}">普通</button>`;
 
   function renderCard(record) {
-    if (state.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}"><div class="pair-art">${imageMarkup(record.image, record.name)}${exToggleMarkup(record)}</div><div class="pair-meta">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}<span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${record.role === '物理攻擊型' ? 'physical' : 'special'}">${escapeHtml(record.role)}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}</div></div></a></article>`;
+    if (state.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}"><div class="pair-art">${imageMarkup(record.image, record.name)}${exToggleMarkup(record)}</div><div class="pair-meta">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}<span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${record.role === '物理攻擊型' ? 'physical' : 'special'}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}</div></div></a></article>`;
     const status = eventStatus(record);
     return `<article class="event-card"><div class="event-visual">${record.image ? imageMarkup(record.image, record.title) : '<div class="event-art-empty" aria-hidden="true"></div>'}</div><div class="event-info"><div class="event-dates">${formatDate(record.start)} — ${formatDate(record.end)}<span class="event-status ${status}">${labels[status]}</span></div><h3 class="event-title">${escapeHtml(record.title)}</h3><p class="event-desc">${escapeHtml(record.description || '暫無活動說明')}</p></div></article>`;
   }
