@@ -1,0 +1,9 @@
+{
+  "name": "sync-grid-portal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-data.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

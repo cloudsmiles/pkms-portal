@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sync Grid | 拍組與活動資料庫</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-mark" aria-hidden="true">SG<span>+</span></div>
+      <div>
+        <p class="eyebrow">SYNC GRID / DATABASE</p>
+        <h1>帕希歐資料庫</h1>
+        <p class="hero-copy">把拍組和活動排成一張好找、好用的時間地圖。</p>
+      </div>
+      <div class="hero-note"><span class="live-dot"></span>資料來自本地專案</div>
+    </header>
+
+    <main>
+      <nav class="tabs" aria-label="資料分類">
+        <button class="tab is-active" data-tab="pairs" type="button">拍組圖鑑 <span id="pair-count">0</span></button>
+        <button class="tab" data-tab="events" type="button">活動日志 <span id="event-count">0</span></button>
+      </nav>
+
+      <section class="toolbar" aria-label="搜尋與篩選">
+        <label class="search-box"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜尋拍組名稱、寶可夢或活動…" autocomplete="off"></label>
+        <label class="select-box pair-only" data-filter="category"><span>分類</span><select id="category-filter"></select></label>
+        <label class="select-box pair-only" data-filter="attribute"><span>屬性</span><select id="attribute-filter"></select></label>
+        <label class="select-box pair-only" data-filter="role"><span>攻擊方式</span><select id="role-filter"></select></label>
+        <label class="select-box pair-only" data-filter="limited"><span>限定標籤</span><select id="limited-tag-filter"></select></label>
+        <label class="select-box event-only" data-filter="date"><span>日期</span><select id="date-filter"></select></label>
+        <label class="select-box event-only" data-filter="status"><span>狀態</span><select id="status-filter"><option value="all">全部狀態</option><option value="active">進行中</option><option value="upcoming">即將開始</option><option value="ended">已結束</option></select></label>
+        <label class="select-box pair-only" data-filter="sort"><span>排序</span><select id="sort-filter"><option value="base-desc">白值總和：高到低</option><option value="base-asc">白值總和：低到高</option><option value="name-asc">名稱：A 到 Z</option><option value="name-desc">名稱：Z 到 A</option></select></label>
+        <label class="select-box"><span>每頁</span><select id="page-size"><option value="12">12 筆</option><option value="24">24 筆</option><option value="48">48 筆</option></select></label>
+        <button id="clear-filters" class="clear-filters" type="button">清除篩選</button>
+      </section>
+
+      <section class="section-heading">
+        <div><p class="eyebrow" id="section-kicker">PAIR INDEX</p><h2 id="section-title">拍組圖鑑</h2></div>
+        <p id="result-summary" class="result-summary"></p>
+      </section>
+      <div id="content" class="content-grid"></div>
+      <div id="empty" class="empty-state" hidden><strong>找不到符合條件的資料</strong><span>換個關鍵字或放寬篩選條件試試。</span></div>
+      <nav id="pagination" class="pagination" aria-label="分頁"></nav>
+    </main>
+    <footer>Sync Grid · 本頁為資料索引，詳細內容請點擊卡片查看</footer>
+  </div>
+  <script src="./data.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
