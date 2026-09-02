@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, sortPairs } from '../ui-helpers.mjs';
+import { sourcePath } from '../web-path.mjs';
+
+test('子模組部署時將資料來源連結指向 sync-grid', () => {
+  assert.equal(sourcePath('./grids/小智&皮卡丘.html'), './sync-grid/grids/小智&皮卡丘.html');
+  assert.equal(sourcePath('./icons/avatar.png'), './sync-grid/icons/avatar.png');
+  assert.equal(sourcePath(''), '');
+});
 
 test('大量頁碼時只顯示首尾、目前頁附近與省略號', () => {
   assert.deepEqual(getPageItems(10, 58), [1, 'ellipsis-left', 9, 10, 11, 'ellipsis-right', 58]);

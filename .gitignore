@@ -1,6 +1,7 @@
 # 本機與 Node.js 產生的暫存檔
 .DS_Store
 node_modules/
+dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

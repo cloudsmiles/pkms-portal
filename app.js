@@ -1,4 +1,5 @@
 import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, pairAttributes, sortPairs } from './ui-helpers.mjs';
+import { sourcePath } from './web-path.mjs';
 
 (() => {
   const data = window.SYNC_GRID_DATA || { pairs: [], events: [] };
@@ -6,7 +7,6 @@ import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairL
   const labels = { active: '進行中', upcoming: '即將開始', ended: '已結束' };
   const $ = (selector) => document.querySelector(selector);
   const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
-  const sourcePath = (value) => value ? `../${value.replace(/^\.\//, '')}` : '';
   const attributeClass = (attribute) => `attribute-${Math.max(0, pairAttributes.indexOf(attribute))}`;
   const formatDate = (value) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric' }).format(new Date(value));
   const eventStatus = (event) => { const now = new Date(); const start = new Date(event.start); const end = new Date(event.end); return now < start ? 'upcoming' : now > end ? 'ended' : 'active'; };

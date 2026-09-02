@@ -1,6 +1,6 @@
 # Sync Grid 資料入口
 
-這是一個獨立的 Node.js 資料入口，透過 `sync-grid` Git 子模組讀取資料，將 `README.md` 與 `eventlog.html` 轉成可搜尋、可篩選、可分頁的資料庫頁面。
+這是一個獨立的 Node.js 資料入口，透過 `sync-grid` Git 子模組讀取資料，建構出包含自訂詳情頁樣式的 `dist/` 靜態網站。
 
 ## 第一次設定
 
@@ -14,7 +14,7 @@ git remote add origin <portal-遠端倉庫地址>
 git submodule add git@github.com:MiMirHenryStone/Sync-Grid.git sync-grid
 npm install
 npm run build
-git add .gitmodules sync-grid package.json package-lock.json scripts index.html styles.css app.js ui-helpers.mjs data.js
+git add .gitmodules sync-grid package.json package-lock.json scripts overrides index.html styles.css app.js ui-helpers.mjs web-path.mjs
 git commit -m "初始化 portal 與 Sync-Grid 子模組"
 git push -u origin main
 ```
@@ -36,16 +36,14 @@ npm run build
 node scripts/build-data.mjs
 ```
 
-然後將 `portal/index.html` 放在靜態網站環境中開啟。
+將 `dist/` 目錄作為靜態網站根目錄。
 
 ## 更新資料
 
 更新 `Sync-Grid` 子模組並重建 `data.js`：
 
 ```bash
-git pull --recurse-submodules
-git submodule update --remote --merge sync-grid
-npm run build
+npm run update
 ```
 
 如果需要使用本機其他資料源，可透過 `SYNC_GRID_DIR` 覆蓋子模組路徑：

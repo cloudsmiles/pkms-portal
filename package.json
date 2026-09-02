@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build-data.mjs",
+    "update": "git pull --recurse-submodules && git submodule update --remote --merge sync-grid && npm run build",
     "test": "node --test test/*.test.mjs"
   }
 }
