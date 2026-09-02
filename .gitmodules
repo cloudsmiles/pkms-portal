@@ -1,0 +1,3 @@
+[submodule "sync-grid"]
+	path = sync-grid
+	url = git@github.com:MiMirHenryStone/Sync-Grid.git
