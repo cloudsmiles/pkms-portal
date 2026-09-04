@@ -45,24 +45,26 @@ h2 { font-size: clamp(28px, 4vw, 42px); }
 .pair-role { border-color: rgba(255, 173, 107, .42); color: var(--orange); }
 .pair-role.physical { color: #91b8ff; border-color: rgba(145, 184, 255, .42); }
 .attribute-chip { color: #fff; border-color: transparent; }
-.attribute-0 { color: #657279; background: #dfe5e7; }
-.attribute-1 { background: #d95a45; }
-.attribute-2 { background: #408bd0; }
-.attribute-3 { color: #293000; background: #d4bd38; }
-.attribute-4 { color: #173b24; background: #64ad67; }
-.attribute-5 { color: #234153; background: #91c9e2; }
-.attribute-6 { background: #a84f91; }
-.attribute-7 { background: #8758a8; }
-.attribute-8 { color: #443000; background: #c79a4b; }
-.attribute-9 { color: #25415a; background: #8fb8d8; }
-.attribute-10 { color: #3d275b; background: #c0a2d8; }
-.attribute-11 { color: #314516; background: #a7bf54; }
-.attribute-12 { color: #43300f; background: #bd9560; }
-.attribute-13 { background: #705486; }
-.attribute-14 { color: #452035; background: #ba6b9d; }
-.attribute-15 { background: #55477e; }
-.attribute-16 { color: #36404a; background: #aeb8c1; }
-.attribute-17 { color: #5a2744; background: #e8a8ca; }
+/* 屬性色＝榜單頭像框體取色（rank/extract_features.py 的 TYPE_FRAME_COLORS 聚類中心）。
+   淺底屬性用深色字、深底屬性用白字（對比度決定）。 */
+.attribute-0 { color: #1f292a; background: #969493; }   /* 一般 灰 */
+.attribute-1 { background: #bd3437; }                   /* 火 紅 */
+.attribute-2 { color: #1f292a; background: #55b8e2; }   /* 水 天藍 */
+.attribute-3 { color: #1f292a; background: #dcb40a; }   /* 電 黃 */
+.attribute-4 { color: #1f292a; background: #459e4e; }   /* 草 綠 */
+.attribute-5 { color: #1f292a; background: #94c9cb; }   /* 冰 淺青 */
+.attribute-6 { color: #1f292a; background: #d57741; }   /* 格鬥 橙 */
+.attribute-7 { background: #784a91; }                   /* 毒 紫 */
+.attribute-8 { background: #975939; }                   /* 地面 棕 */
+.attribute-9 { background: #4971dd; }                   /* 飛行 藍 */
+.attribute-10 { background: #c34b78; }                  /* 超能力 品紅 */
+.attribute-11 { color: #1f292a; background: #9cb558; }  /* 蟲 黃綠 */
+.attribute-12 { background: #85725f; }                  /* 岩石 褐 */
+.attribute-13 { background: #a0739b; }                  /* 幽靈 紫藕 */
+.attribute-14 { background: #1284a1; }                  /* 龍 青藍 */
+.attribute-15 { background: #4a4759; }                  /* 惡 深靛 */
+.attribute-16 { color: #1f292a; background: #7f889c; } /* 鋼 鋼灰 */
+.attribute-17 { color: #1f292a; background: #ed9bb8; } /* 妖精 粉 */
 .pair-total { float: right; color: var(--muted); font: 11px 'Space Grotesk'; }
 
 /* 卡片標題列：田雞榜等級徽章在左、Lv.200 白值在右 */
@@ -74,7 +76,7 @@ h2 { font-size: clamp(28px, 4vw, 42px); }
   border: 1px solid transparent;
 }
 .pair-rank.rank-fam-free     { color: #ffffff; border-color: rgba(255,255,255,.65); background: linear-gradient(100deg,#f15c4f,#f5b81d,#54c46a,#3f8cff,#8e5bf0); } /* 自由者(最高)：彩虹漸層 */
-.pair-rank.rank-fam-champion { color: #3a2c00; border-color: #d99e00; background: #f5b81d; } /* 冠軍：琥珀金（深於高級球黃） */
+.pair-rank.rank-fam-champion { color: #f5cf6b; border-color: #f5cf6b; background: linear-gradient(150deg,#2a2418,#0c0b08); box-shadow: inset 0 0 0 1px rgba(245,207,107,.35); } /* 冠軍：黑金（黑底金字金邊，與高級球黃拉開） */
 .pair-rank.rank-fam-master   { color: #ffffff; border-color: #8a5cd9; background: #8e5bf0; } /* 大師球：紫 */
 .pair-rank.rank-fam-hyper    { color: #241a00; border-color: #e0b400; background: #ffd83d; } /* 高級球(Ultra Ball)：黃 */
 .pair-rank.rank-fam-super    { color: #ffffff; border-color: #2f74e0; background: #3f8cff; } /* 超級球(Great Ball)：藍 */
@@ -171,14 +173,12 @@ body { font-size: var(--portal-body-size); }
 .pair-badges .pair-role.physical { color: #102b58; border-color: #b9d4ff; background: #91b8ff; }
 .pair-badges .attribute-chip { border-color: rgba(255, 255, 255, .62); }
 .pair-badges .attribute-0,
+.pair-badges .attribute-2,
 .pair-badges .attribute-3,
 .pair-badges .attribute-4,
 .pair-badges .attribute-5,
-.pair-badges .attribute-8,
-.pair-badges .attribute-9,
-.pair-badges .attribute-10,
+.pair-badges .attribute-6,
 .pair-badges .attribute-11,
-.pair-badges .attribute-12,
 .pair-badges .attribute-16,
 .pair-badges .attribute-17 { border-color: rgba(35, 48, 50, .28); }
 @media (max-width: 620px) { .pair-badges { gap: 4px; } }
@@ -198,21 +198,21 @@ body { font-size: var(--portal-body-size); }
 }
 .image-missing { display: grid; place-items: center; width: 100%; height: 100%; min-height: 80px; color: var(--muted); font-size: 12px; background: repeating-linear-gradient(-45deg, #172326, #172326 8px, #1b2a2c 8px, #1b2a2c 16px); }
 .pair-card[class*="attribute-"] .pair-meta { background: transparent; }
-.pair-card.attribute-0 { --pair-color: #8999a2; }
-.pair-card.attribute-1 { --pair-color: #e05a42; }
-.pair-card.attribute-2 { --pair-color: #408bd0; }
-.pair-card.attribute-3 { --pair-color: #c4aa24; }
-.pair-card.attribute-4 { --pair-color: #56a65d; }
-.pair-card.attribute-5 { --pair-color: #76bddb; }
-.pair-card.attribute-6 { --pair-color: #a84f91; }
-.pair-card.attribute-7 { --pair-color: #8758a8; }
-.pair-card.attribute-8 { --pair-color: #b4873d; }
-.pair-card.attribute-9 { --pair-color: #6e9fc7; }
-.pair-card.attribute-10 { --pair-color: #a887c4; }
-.pair-card.attribute-11 { --pair-color: #91aa42; }
-.pair-card.attribute-12 { --pair-color: #aa824e; }
-.pair-card.attribute-13 { --pair-color: #705486; }
-.pair-card.attribute-14 { --pair-color: #ba6b9d; }
-.pair-card.attribute-15 { --pair-color: #55477e; }
-.pair-card.attribute-16 { --pair-color: #8e9da8; }
-.pair-card.attribute-17 { --pair-color: #d493b7; }
+.pair-card.attribute-0 { --pair-color: #969493; }
+.pair-card.attribute-1 { --pair-color: #bd3437; }
+.pair-card.attribute-2 { --pair-color: #55b8e2; }
+.pair-card.attribute-3 { --pair-color: #dcb40a; }
+.pair-card.attribute-4 { --pair-color: #459e4e; }
+.pair-card.attribute-5 { --pair-color: #94c9cb; }
+.pair-card.attribute-6 { --pair-color: #d57741; }
+.pair-card.attribute-7 { --pair-color: #784a91; }
+.pair-card.attribute-8 { --pair-color: #975939; }
+.pair-card.attribute-9 { --pair-color: #4971dd; }
+.pair-card.attribute-10 { --pair-color: #c34b78; }
+.pair-card.attribute-11 { --pair-color: #9cb558; }
+.pair-card.attribute-12 { --pair-color: #85725f; }
+.pair-card.attribute-13 { --pair-color: #a0739b; }
+.pair-card.attribute-14 { --pair-color: #1284a1; }
+.pair-card.attribute-15 { --pair-color: #4a4759; }
+.pair-card.attribute-16 { --pair-color: #7f889c; }
+.pair-card.attribute-17 { --pair-color: #ed9bb8; }
