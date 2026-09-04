@@ -6,7 +6,36 @@ export function getPageItems(currentPage, totalPages) {
 }
 
 export function getViewFilters(tab) {
-  return tab === 'pairs' ? ['category', 'attribute', 'role'] : ['date', 'status'];
+  return tab === 'pairs' ? ['category', 'attribute', 'role', 'rank'] : ['date', 'status'];
+}
+
+// 田雞榜等級：1~15 的梯子。四個球級（新手/精靈球/超級球/高級球）各分 1<2<3 三檔，
+// 球級之間「高級球1」高於「超級球3」；大師球(13)、冠軍(14)無子級，自由者(15)為最高、
+// 彩色漸層。值越大越強。
+const RANK_BALL_NAMES = ['新手', '精靈球', '超級球', '高級球'];
+
+export function rankFamily(rank) {
+  if (rank === 15) return 'free';
+  if (rank === 14) return 'champion';
+  if (rank === 13) return 'master';
+  return ['novice', 'poke', 'super', 'hyper'][Math.floor((rank - 1) / 3)] ?? 'novice';
+}
+
+function rankLevelLabel(value) {
+  if (value === 15) return '自由者';
+  if (value === 14) return '冠軍';
+  if (value === 13) return '大師球';
+  const tier = Math.floor((value - 1) / 3);
+  const sub = ((value - 1) % 3) + 1;
+  return `${RANK_BALL_NAMES[tier]}${sub}`;
+}
+
+// 由高到低，供篩選下拉使用。
+export const rankLevels = Array.from({ length: 15 }, (_, i) => 15 - i)
+  .map((value) => ({ value, label: rankLevelLabel(value), family: rankFamily(value) }));
+
+export function getRankTierLabel(rank) {
+  return rankLevels.find((tier) => tier.value === rank)?.label ?? '';
 }
 
 export function getPairCategories(pairs) {
@@ -34,11 +63,20 @@ export function getPairLimitedTags(pairs) {
 }
 
 export function sortPairs(pairs, mode = 'base-desc') {
+  const byBase = (left, right) => (right.baseTotal ?? 0) - (left.baseTotal ?? 0);
   return [...pairs].sort((left, right) => {
     if (mode === 'name-asc') return left.name.localeCompare(right.name, 'zh');
     if (mode === 'name-desc') return right.name.localeCompare(left.name, 'zh');
     if (mode === 'base-asc') return (left.baseTotal ?? 0) - (right.baseTotal ?? 0);
-    return (right.baseTotal ?? 0) - (left.baseTotal ?? 0);
+    if (mode === 'rank-desc' || mode === 'rank-asc') {
+      // 無等級（未上榜）的拍組一律往後放；上榜者依等級排序，同級再按白值高→低。
+      if (left.rank == null && right.rank == null) return byBase(left, right);
+      if (left.rank == null) return 1;
+      if (right.rank == null) return -1;
+      const byRank = mode === 'rank-desc' ? right.rank - left.rank : left.rank - right.rank;
+      return byRank || byBase(left, right);
+    }
+    return byBase(left, right);
   });
 }
 
@@ -49,15 +87,20 @@ export function getAttributeOptions() {
 }
 
 export function getActiveFilterCount(state) {
-  return ['query', 'category', 'attribute', 'role', 'limitedTag', 'date', 'status']
+  return ['query', 'category', 'attribute', 'role', 'rank', 'limitedTag', 'date', 'status']
     .filter((key) => state[key] && state[key] !== 'all').length;
 }
 
 export function getFilterOptionLabel(filter, value) {
   if (value === 'all') return '全部';
   if (filter === 'attribute') return value;
+  if (filter === 'rank') return getRankTierLabel(Number(value));
   if (filter === 'role') return value === '物理攻擊型' ? '物攻' : value === '特殊攻擊型' ? '特攻' : value;
-  if (filter === 'sort') return { 'base-desc': '白值高→低', 'base-asc': '白值低→高', 'name-asc': '名稱 A→Z', 'name-desc': '名稱 Z→A' }[value] || value;
+  if (filter === 'sort') return {
+    'base-desc': '白值高→低', 'base-asc': '白值低→高',
+    'name-asc': '名稱 A→Z', 'name-desc': '名稱 Z→A',
+    'rank-desc': '等級高→低', 'rank-asc': '等級低→高',
+  }[value] || value;
   if (filter === 'pageSize') return `${value} 筆`;
   return value;
 }

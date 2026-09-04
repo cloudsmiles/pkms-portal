@@ -1,11 +1,27 @@
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parseEventRecords } from './parse-data.mjs';
 import { getProjectDir } from './project-path.mjs';
 
 const portalDir = resolve(import.meta.dirname, '..');
 const staticFiles = ['index.html', 'styles.css', 'app.js', 'ui-helpers.mjs', 'web-path.mjs'];
+
+// 田鸡榜等級：rank/data.js 由 rank/ 管線（圖片匹配 + 列 B 等級徽章）產生，為
+// `export const 拍组等级 = { 拍組名: 0~5 }`。鍵為繁中拍組名（=★6ex 圖示檔名、
+// = pair.name），這裡用 NFKC 正規化後對齊。檔案不存在時視為無等級資料（全數 null）。
+async function loadRankMap() {
+  const rankFile = resolve(portalDir, 'rank', 'data.js');
+  try {
+    const mod = await import(pathToFileURL(rankFile).href);
+    const table = mod['拍组等级'] ?? mod.default ?? {};
+    return new Map(Object.entries(table).map(([name, rank]) => [name.normalize('NFKC'), Number(rank)]));
+  } catch (error) {
+    if (error.code !== 'ERR_MODULE_NOT_FOUND') throw error;
+    console.log('未找到 rank/data.js，略過等級資料（請先執行 rank/ 管線產生）');
+    return new Map();
+  }
+}
 
 export function injectDetailAssets(html) {
   const withViewport = /<meta\s+[^>]*name=["']viewport["']/i.test(html) ? html : html.replace('</head>', '  <meta name="viewport" content="width=device-width, initial-scale=1">\n</head>');
@@ -35,21 +51,23 @@ export async function build() {
 
   const iconNames = await readdir(resolve(projectDir, 'icons'));
   const exIcons = new Map(iconNames.filter((name) => name.startsWith('★6ex_')).map((name) => [name.replace(/^★6ex_/, '').replace(/\.png$/i, '').normalize('NFKC'), name]));
-  const [readme, eventlog] = await Promise.all([readFile(resolve(projectDir, 'README.md'), 'utf8'), readFile(resolve(projectDir, 'eventlog.html'), 'utf8')]);
+  const [readme, eventlog, rankMap] = await Promise.all([readFile(resolve(projectDir, 'README.md'), 'utf8'), readFile(resolve(projectDir, 'eventlog.html'), 'utf8'), loadRankMap()]);
   const pairs = parsePairRecords(readme);
   const enrichedPairs = await Promise.all(pairs.map(async (pair) => {
+    const rank = rankMap.get(pair.name.normalize('NFKC')) ?? null;
     try {
       const grid = await readFile(resolve(projectDir, pair.href.replace(/^\.\//, '')), 'utf8');
       const exImageName = exIcons.get(pair.name.normalize('NFKC'));
-      return { ...pair, attributes: parsePairAttributes(grid), role: parsePairRole(grid), limitedTag: parsePairLimitedTag(grid), exImage: exImageName ? `./icons/${exImageName}` : '', baseTotal: parsePairBaseTotal(grid) };
+      return { ...pair, rank, attributes: parsePairAttributes(grid), role: parsePairRole(grid), limitedTag: parsePairLimitedTag(grid), exImage: exImageName ? `./icons/${exImageName}` : '', baseTotal: parsePairBaseTotal(grid) };
     } catch {
-      return { ...pair, attributes: [], role: '', limitedTag: '', exImage: '', baseTotal: 0 };
+      return { ...pair, rank, attributes: [], role: '', limitedTag: '', exImage: '', baseTotal: 0 };
     }
   }));
   enrichedPairs.sort((left, right) => right.baseTotal - left.baseTotal || left.name.localeCompare(right.name));
   const data = { pairs: enrichedPairs, events: parseEventRecords(eventlog) };
   await writeFile(resolve(distDir, 'data.js'), `window.SYNC_GRID_DATA = ${JSON.stringify(data)};\n`, 'utf8');
-  console.log(`已生成 dist：${data.pairs.length} 個拍組、${data.events.length} 個活動`);
+  const ranked = enrichedPairs.filter((pair) => pair.rank != null).length;
+  console.log(`已生成 dist：${data.pairs.length} 個拍組（含田雞榜等級 ${ranked}）、${data.events.length} 個活動`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await build();

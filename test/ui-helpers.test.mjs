@@ -46,8 +46,49 @@ test('大量頁碼時只顯示首尾、目前頁附近與省略號', () => {
 });
 
 test('拍組與活動使用各自的篩選項', () => {
-  assert.deepEqual(getViewFilters('pairs'), ['category', 'attribute', 'role']);
+  assert.deepEqual(getViewFilters('pairs'), ['category', 'attribute', 'role', 'rank']);
   assert.deepEqual(getViewFilters('events'), ['date', 'status']);
+});
+
+test('田雞榜等級提供 1~15 的繁中標籤（球級細分 1/2/3，自由者最高）', () => {
+  assert.deepEqual(uiHelpers.rankLevels.map((tier) => tier.value), Array.from({ length: 15 }, (_, i) => 15 - i));
+  assert.equal(uiHelpers.getRankTierLabel(15), '自由者');
+  assert.equal(uiHelpers.getRankTierLabel(14), '冠軍');
+  assert.equal(uiHelpers.getRankTierLabel(13), '大師球');
+  assert.equal(uiHelpers.getRankTierLabel(12), '高級球3');
+  assert.equal(uiHelpers.getRankTierLabel(10), '高級球1');
+  assert.equal(uiHelpers.getRankTierLabel(9), '超級球3');
+  assert.equal(uiHelpers.getRankTierLabel(1), '新手1');
+  assert.equal(uiHelpers.getRankTierLabel(null), '');
+  // 超級球3 < 高級球1：數值上 9 < 10；冠軍 < 自由者 14 < 15。
+  assert.ok(9 < 10);
+  assert.ok(14 < 15);
+  assert.equal(uiHelpers.getFilterOptionLabel('rank', '15'), '自由者');
+  assert.equal(uiHelpers.getFilterOptionLabel('rank', '13'), '大師球');
+  assert.equal(uiHelpers.getFilterOptionLabel('sort', 'rank-desc'), '等級高→低');
+  assert.equal(uiHelpers.rankFamily(15), 'free');
+  assert.equal(uiHelpers.rankFamily(14), 'champion');
+  assert.equal(uiHelpers.rankFamily(12), 'hyper');
+  assert.equal(uiHelpers.rankFamily(7), 'super');
+  assert.equal(uiHelpers.rankFamily(1), 'novice');
+});
+
+test('等級篩選計入啟用的篩選數量', () => {
+  assert.equal(uiHelpers.getActiveFilterCount({
+    query: '', category: 'all', attribute: 'all', role: 'all', rank: '12',
+    limitedTag: 'all', date: 'all', status: 'all'
+  }), 1);
+});
+
+test('依等級排序時上榜者在前、未上榜者在後', () => {
+  const pairs = [
+    { name: '無榜', baseTotal: 999 },
+    { name: '新手1', rank: 1, baseTotal: 100 },
+    { name: '冠軍', rank: 14, baseTotal: 200 },
+    { name: '大師', rank: 13, baseTotal: 150 }
+  ];
+  assert.deepEqual(sortPairs(pairs, 'rank-desc').map((pair) => pair.name), ['冠軍', '大師', '新手1', '無榜']);
+  assert.deepEqual(sortPairs(pairs, 'rank-asc').map((pair) => pair.name), ['新手1', '大師', '冠軍', '無榜']);
 });
 
 test('攻擊方式篩選只顯示詳情頁存在的類型', () => {

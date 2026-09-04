@@ -65,6 +65,22 @@ h2 { font-size: clamp(28px, 4vw, 42px); }
 .attribute-17 { color: #5a2744; background: #e8a8ca; }
 .pair-total { float: right; color: var(--muted); font: 11px 'Space Grotesk'; }
 
+/* 卡片標題列：田雞榜等級徽章在左、Lv.200 白值在右 */
+.pair-topline { display: flex; align-items: center; gap: 6px; min-height: 17px; }
+.pair-topline .pair-total { float: none; margin-left: auto; }
+.pair-rank {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; line-height: 1.5; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.pair-rank.rank-fam-free     { color: #ffffff; border-color: rgba(255,255,255,.65); background: linear-gradient(100deg,#f15c4f,#f5b81d,#54c46a,#3f8cff,#8e5bf0); } /* 自由者(最高)：彩虹漸層 */
+.pair-rank.rank-fam-champion { color: #3a2c00; border-color: #d99e00; background: #f5b81d; } /* 冠軍：琥珀金（深於高級球黃） */
+.pair-rank.rank-fam-master   { color: #ffffff; border-color: #8a5cd9; background: #8e5bf0; } /* 大師球：紫 */
+.pair-rank.rank-fam-hyper    { color: #241a00; border-color: #e0b400; background: #ffd83d; } /* 高級球(Ultra Ball)：黃 */
+.pair-rank.rank-fam-super    { color: #ffffff; border-color: #2f74e0; background: #3f8cff; } /* 超級球(Great Ball)：藍 */
+.pair-rank.rank-fam-poke     { color: #ffffff; border-color: #d63c30; background: #f15c4f; } /* 精靈球(Poké Ball)：紅 */
+.pair-rank.rank-fam-novice   { color: #1f292a; border-color: #c4ccce; background: #9aa6a8; } /* 新手：灰 */
+
 /* 入口頁與詳情頁共用同一套響應式尺寸節奏。 */
 :root {
   --portal-page-padding: clamp(12px, 3vw, 40px);

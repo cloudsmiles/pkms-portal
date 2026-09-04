@@ -1,17 +1,17 @@
-import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, getPairRoleLabel, matchesPairRole, pairAttributes, sortPairs, getAttributeOptions, getActiveFilterCount, getFilterOptionLabel, isFilterActive } from './ui-helpers.mjs';
+import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, getPairRoleLabel, matchesPairRole, pairAttributes, sortPairs, getAttributeOptions, getActiveFilterCount, getFilterOptionLabel, isFilterActive, rankLevels, rankFamily, getRankTierLabel } from './ui-helpers.mjs';
 import { sourcePath } from './web-path.mjs';
 
 (() => {
   const data = window.SYNC_GRID_DATA || { pairs: [], events: [] };
-  const state = { tab: 'pairs', query: '', category: 'all', attribute: 'all', role: 'all', limitedTag: 'all', date: 'all', status: 'all', sort: 'base-desc', page: 1, pageSize: 12 };
+  const state = { tab: 'pairs', query: '', category: 'all', attribute: 'all', role: 'all', rank: 'all', limitedTag: 'all', date: 'all', status: 'all', sort: 'base-desc', page: 1, pageSize: 12 };
   const labels = { active: '進行中', upcoming: '即將開始', ended: '已結束' };
   const $ = (selector) => document.querySelector(selector);
   const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
   const attributeClass = (attribute) => `attribute-${Math.max(0, pairAttributes.indexOf(attribute))}`;
   const formatDate = (value) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric' }).format(new Date(value));
   const eventStatus = (event) => { const now = new Date(); const start = new Date(event.start); const end = new Date(event.end); return now < start ? 'upcoming' : now > end ? 'ended' : 'active'; };
-  const filterLabels = { query: '搜尋', category: '分類', attribute: '屬性', role: '攻擊方式', limitedTag: '限定標籤', date: '日期', status: '狀態' };
-  const filterElements = { category: 'category-filter', role: 'role-filter', limitedTag: 'limited-tag-filter', date: 'date-filter', status: 'status-filter' };
+  const filterLabels = { query: '搜尋', category: '分類', attribute: '屬性', role: '攻擊方式', rank: '田雞榜等級', limitedTag: '限定標籤', date: '日期', status: '狀態' };
+  const filterElements = { category: 'category-filter', role: 'role-filter', rank: 'rank-filter', limitedTag: 'limited-tag-filter', date: 'date-filter', status: 'status-filter' };
 
   function filteredRecords() {
     const query = state.query.trim().toLocaleLowerCase();
@@ -22,10 +22,11 @@ import { sourcePath } from './web-path.mjs';
       const matchesCategory = state.tab === 'events' || state.category === 'all' || record.category === state.category;
       const matchesAttribute = state.tab === 'events' || state.attribute === 'all' || record.attributes?.includes(state.attribute);
       const matchesRole = state.tab === 'events' || state.role === 'all' || matchesPairRole(record, state.role);
+      const matchesRank = state.tab === 'events' || state.rank === 'all' || record.rank === Number(state.rank);
       const matchesLimitedTag = state.tab === 'events' || state.limitedTag === 'all' || record.limitedTag === state.limitedTag;
       const matchesDate = state.tab === 'pairs' || state.date === 'all' || record.start.slice(0, 10) === state.date;
       const matchesStatus = state.tab === 'pairs' || state.status === 'all' || eventStatus(record) === state.status;
-      return matchesQuery && matchesCategory && matchesAttribute && matchesRole && matchesLimitedTag && matchesDate && matchesStatus;
+      return matchesQuery && matchesCategory && matchesAttribute && matchesRole && matchesRank && matchesLimitedTag && matchesDate && matchesStatus;
     });
     return state.tab === 'pairs' ? sortPairs(filtered, state.sort) : filtered;
   }
@@ -37,7 +38,7 @@ import { sourcePath } from './web-path.mjs';
   const exToggleMarkup = (record) => `<button class="ex-toggle" type="button" data-normal-image="${sourcePath(record.image)}" data-ex-image="${sourcePath(record.exImage)}" ${record.exImage ? '' : 'disabled'} aria-label="${record.exImage ? '目前為普通頭像，點擊切換到★6 EX' : '沒有★6 EX頭像'}" title="${record.exImage ? '目前為普通頭像，點擊切換到★6 EX' : '沒有★6 EX頭像'}">普通</button>`;
 
   function renderCard(record) {
-    if (state.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}"><div class="pair-art">${imageMarkup(record.image, record.name)}${exToggleMarkup(record)}</div><div class="pair-meta">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}<span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${record.role === '物理攻擊型' ? 'physical' : 'special'}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}</div></div></a></article>`;
+    if (state.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}"><div class="pair-art">${imageMarkup(record.image, record.name)}${exToggleMarkup(record)}</div><div class="pair-meta"><span class="pair-topline">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}${record.rank != null ? `<span class="pair-rank rank-fam-${rankFamily(record.rank)}" title="田雞榜等級">${getRankTierLabel(record.rank)}</span>` : ''}</span><span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${record.role === '物理攻擊型' ? 'physical' : 'special'}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}</div></div></a></article>`;
     const status = eventStatus(record);
     return `<article class="event-card"><div class="event-visual">${record.image ? imageMarkup(record.image, record.title) : '<div class="event-art-empty" aria-hidden="true"></div>'}</div><div class="event-info"><div class="event-dates">${formatDate(record.start)} — ${formatDate(record.end)}<span class="event-status ${status}">${labels[status]}</span></div><h3 class="event-title">${escapeHtml(record.title)}</h3><p class="event-desc">${escapeHtml(record.description || '暫無活動說明')}</p></div></article>`;
   }
@@ -91,7 +92,7 @@ import { sourcePath } from './web-path.mjs';
   }
 
   function renderActiveFilters() {
-    const active = ['query', 'category', 'attribute', 'role', 'limitedTag', 'date', 'status']
+    const active = ['query', 'category', 'attribute', 'role', 'rank', 'limitedTag', 'date', 'status']
       .filter((key) => state[key] && state[key] !== 'all');
     $('#clear-filters').textContent = getActiveFilterCount(state) ? `清除篩選（${getActiveFilterCount(state)}）` : '清除篩選';
     $('#active-filters').innerHTML = active.length
@@ -143,15 +144,16 @@ import { sourcePath } from './web-path.mjs';
   $('#category-filter').addEventListener('change', (event) => { state.category = event.target.value; state.page = 1; render(); });
   $('#attribute-filter').addEventListener('change', (event) => { state.attribute = event.target.value; state.page = 1; render(); });
   $('#role-filter').addEventListener('change', (event) => { state.role = event.target.value; state.page = 1; render(); });
+  $('#rank-filter').addEventListener('change', (event) => { state.rank = event.target.value; state.page = 1; render(); });
   $('#limited-tag-filter').addEventListener('change', (event) => { state.limitedTag = event.target.value; state.page = 1; render(); });
   $('#status-filter').addEventListener('change', (event) => { state.status = event.target.value; state.page = 1; render(); });
   $('#date-filter').addEventListener('change', (event) => { state.date = event.target.value; state.page = 1; render(); });
   $('#page-size').addEventListener('change', (event) => { state.pageSize = Number(event.target.value); state.page = 1; render(); });
   $('#sort-filter').addEventListener('change', (event) => { state.sort = event.target.value; state.page = 1; render(); });
   $('#clear-filters').addEventListener('click', () => {
-    Object.assign(state, { query: '', category: 'all', attribute: 'all', role: 'all', limitedTag: 'all', date: 'all', status: 'all', sort: 'base-desc', page: 1 });
+    Object.assign(state, { query: '', category: 'all', attribute: 'all', role: 'all', rank: 'all', limitedTag: 'all', date: 'all', status: 'all', sort: 'base-desc', page: 1 });
     $('#search').value = '';
-    ['category-filter', 'attribute-filter', 'role-filter', 'limited-tag-filter', 'date-filter', 'status-filter', 'sort-filter'].forEach((id) => { $(`#${id}`).value = id === 'sort-filter' ? 'base-desc' : 'all'; });
+    ['category-filter', 'attribute-filter', 'role-filter', 'rank-filter', 'limited-tag-filter', 'date-filter', 'status-filter', 'sort-filter'].forEach((id) => { $(`#${id}`).value = id === 'sort-filter' ? 'base-desc' : 'all'; });
     render();
   });
   $('#toolbar').addEventListener('click', (event) => {
@@ -216,6 +218,7 @@ import { sourcePath } from './web-path.mjs';
   $('#category-filter').innerHTML = ['<option value="all">全部</option>', ...getPairCategories(data.pairs).map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)].join('');
   $('#attribute-filter').innerHTML = getAttributeOptions().map((attribute) => `<option value="${attribute}">${escapeHtml(getFilterOptionLabel('attribute', attribute))}</option>`).join('');
   $('#role-filter').innerHTML = ['<option value="all">全部</option>', ...getPairRoles(data.pairs).map((role) => `<option value="${escapeHtml(role)}">${escapeHtml(getFilterOptionLabel('role', role))}</option>`)].join('');
+  $('#rank-filter').innerHTML = ['<option value="all">全部</option>', ...rankLevels.map((tier) => `<option value="${tier.value}">${escapeHtml(tier.label)}</option>`)].join('');
   $('#limited-tag-filter').innerHTML = ['<option value="all">全部</option>', ...getPairLimitedTags(data.pairs).map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`)].join('');
   $('#date-filter').innerHTML = ['<option value="all">全部</option>', ...[...new Set(data.events.map((event) => event.start.slice(0, 10)))].map((date) => `<option value="${date}">${date.replaceAll('-', '/')}</option>`)].join('');
   initializeCustomSelects();
