@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parseEventRecords, getEventStatus } from '../scripts/parse-data.mjs';
+import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parsePairFieldEffects, parseEventRecords, getEventStatus } from '../scripts/parse-data.mjs';
 import { getProjectDir } from '../scripts/project-path.mjs';
 import { injectDetailAssets } from '../scripts/build-data.mjs';
 
@@ -82,6 +82,61 @@ test('非攻擊型依招式分類推導物攻、特攻或雙攻', () => {
 test('只從基本資料標題解析限定標籤，不包含拍組搜尋', () => {
   assert.equal(parsePairLimitedTag('<table><tr><th>大師盛典限定★5 美月&奈克洛茲瑪</th></tr></table>'), '大師盛典限定');
   assert.equal(parsePairLimitedTag('<table><tr><th>拍組搜尋★5 美月&奈克洛茲瑪</th></tr></table>'), '');
+});
+
+test('從招式與被動描述解析天氣、場地、領域', () => {
+  const grid = [
+    '<table class="move"><tr><td>招式</td><td>使出招式時，會將天氣變成下雨。</td></tr></table>',
+    '<table class="passive"><tr><td>被動</td><td>首次上場時，會將場地變成電氣場地。</td></tr></table>',
+    '<table class="passive"><tr><td>被動</td><td>會將領域變成妖精領域。<br>（妖精領域會提高妖精屬性的攻擊的威力。）</td></tr></table>'
+  ].join('');
+
+  assert.deepEqual(parsePairFieldEffects(grid), [
+    { kind: 'weather', code: 'rain', ex: false },
+    { kind: 'terrain', code: 'electric', ex: false },
+    { kind: 'zone', code: '妖精', ex: false }
+  ]);
+});
+
+test('石盤嵌入資料裡的場效設定句也能解析', () => {
+  const grid = `<script>const tiles = [[1014011049, '首次上場時變成惡顏領域', '首次上場時，會將領域變成惡顏領域。\\n（惡顏領域會提高惡屬性的攻擊的威力。）', 0, 5]];</script>`;
+  assert.deepEqual(parsePairFieldEffects(grid), [{ kind: 'zone', code: '惡', ex: false }]);
+});
+
+test('ＥＸ強化版場效標記為 ex，且與普通版去重後保留 ex', () => {
+  const exZone = '<table class="move"><tr><td>首次使出此招式攻擊成功時，會將領域變成ＥＸ玉蟲領域。<br>（ＥＸ玉蟲領域會提高蟲屬性的攻擊的威力。）</td></tr></table>';
+  assert.deepEqual(parsePairFieldEffects(exZone), [{ kind: 'zone', code: '蟲', ex: true }]);
+
+  const exWeather = '會將天氣變成ＥＸ下雨。';
+  assert.deepEqual(parsePairFieldEffects(exWeather), [{ kind: 'weather', code: 'rain', ex: true }]);
+
+  const exTerrain = '會將場地變成ＥＸ精神場地。';
+  assert.deepEqual(parsePairFieldEffects(exTerrain), [{ kind: 'terrain', code: 'psychic', ex: true }]);
+
+  const both = '會將領域變成藍天領域。會將領域變成ＥＸ藍天領域。';
+  assert.deepEqual(parsePairFieldEffects(both), [{ kind: 'zone', code: '飛行', ex: true }]);
+});
+
+test('條件句與延長持續時間不計為場效', () => {
+  const grid = [
+    '將天氣變成日照強烈時，會提高火屬性招式的威力。',
+    '只有在天氣、場地或領域變化時，才會發動此被動。',
+    '當領域為妖精領域時，招式計量槽會增加。',
+    '當我方使天氣、場地或領域生效時，會賦予增強效果。',
+    '上場時，會延長妖精領域的持續時間。',
+    '領域變成劇毒領域的瞬間，會降低對手防禦。'
+  ].join('');
+  assert.deepEqual(parsePairFieldEffects(grid), []);
+});
+
+test('日照強烈的狀態正規化為 sun 且四種天氣三種場地都能解析', () => {
+  const grid = ['將天氣變成日照強烈的狀態。', '將天氣變成沙暴。', '將天氣變成冰雹。', '將場地變成青草場地。'].join('');
+  assert.deepEqual(parsePairFieldEffects(grid), [
+    { kind: 'weather', code: 'sun', ex: false },
+    { kind: 'weather', code: 'sand', ex: false },
+    { kind: 'weather', code: 'hail', ex: false },
+    { kind: 'terrain', code: 'grassy', ex: false }
+  ]);
 });
 
 test('從等級表計算Lv.200六項白值總和', () => {

@@ -1,17 +1,23 @@
-import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, getPairRoleLabel, matchesPairRole, pairAttributes, sortPairs, getAttributeOptions, getActiveFilterCount, getFilterOptionLabel, isFilterActive, rankLevels, rankFamily, getRankTierLabel } from './ui-helpers.mjs';
+import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, getPairRoleLabel, matchesPairRole, pairAttributes, sortPairs, getAttributeOptions, getFieldEffectOptions, getFieldEffectLabel, matchesFieldEffectSelection, getActiveFilterCount, getFilterOptionLabel, isFilterActive, rankLevels, rankFamily, getRankTierLabel } from './ui-helpers.mjs';
 import { sourcePath } from './web-path.mjs';
 
 (() => {
   const data = window.SYNC_GRID_DATA || { pairs: [], events: [] };
-  const state = { tab: 'pairs', query: '', category: 'all', attribute: 'all', role: 'all', rank: 'all', limitedTag: 'all', date: 'all', status: 'all', sort: 'base-desc', page: 1, pageSize: 12 };
+  // 多選篩選以陣列保存選中值（空陣列＝全部）；其餘維持單值 'all'。
+  const state = { tab: 'pairs', query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], date: 'all', status: 'all', sort: 'base-desc', page: 1, pageSize: 12 };
   const labels = { active: '進行中', upcoming: '即將開始', ended: '已結束' };
   const $ = (selector) => document.querySelector(selector);
   const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
   const attributeClass = (attribute) => `attribute-${Math.max(0, pairAttributes.indexOf(attribute))}`;
+  const fieldEffectToneClass = (kind, code) => (kind === 'zone' ? attributeClass(code) : `field-${kind}-${code}`);
   const formatDate = (value) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric' }).format(new Date(value));
   const eventStatus = (event) => { const now = new Date(); const start = new Date(event.start); const end = new Date(event.end); return now < start ? 'upcoming' : now > end ? 'ended' : 'active'; };
-  const filterLabels = { query: '搜尋', category: '分類', attribute: '屬性', role: '攻擊方式', rank: '田雞榜等級', limitedTag: '限定標籤', date: '日期', status: '狀態' };
-  const filterElements = { category: 'category-filter', role: 'role-filter', rank: 'rank-filter', limitedTag: 'limited-tag-filter', date: 'date-filter', status: 'status-filter' };
+  const filterLabels = { query: '搜尋', category: '分類', attribute: '屬性', role: '攻擊方式', rank: '田雞榜等級', limitedTag: '限定標籤', fieldEffect: '場效', date: '日期', status: '狀態' };
+  const filterElements = { category: 'category-filter', role: 'role-filter', rank: 'rank-filter', limitedTag: 'limited-tag-filter', fieldEffect: 'field-effect-filter', date: 'date-filter', status: 'status-filter' };
+  // data-filter 與 state 鍵名的對應（僅限定標籤不同）；這些篩選為多選。
+  const FILTER_STATE_KEY = { limited: 'limitedTag' };
+  const MULTI_FILTER_KEYS = new Set(['category', 'attribute', 'rank', 'limitedTag', 'fieldEffect']);
+  const stateKeyOf = (filter) => FILTER_STATE_KEY[filter] ?? filter;
 
   function filteredRecords() {
     const query = state.query.trim().toLocaleLowerCase();
@@ -19,14 +25,15 @@ import { sourcePath } from './web-path.mjs';
     const filtered = records.filter((record) => {
       const text = state.tab === 'pairs' ? `${record.name} ${record.category} ${record.limitedTag || ''}` : `${record.title} ${record.description}`;
       const matchesQuery = !query || text.toLocaleLowerCase().includes(query);
-      const matchesCategory = state.tab === 'events' || state.category === 'all' || record.category === state.category;
-      const matchesAttribute = state.tab === 'events' || state.attribute === 'all' || record.attributes?.includes(state.attribute);
+      const matchesCategory = state.tab === 'events' || state.category.length === 0 || state.category.includes(record.category);
+      const matchesAttribute = state.tab === 'events' || state.attribute.length === 0 || record.attributes?.some((attribute) => state.attribute.includes(attribute));
       const matchesRole = state.tab === 'events' || state.role === 'all' || matchesPairRole(record, state.role);
-      const matchesRank = state.tab === 'events' || state.rank === 'all' || record.rank === Number(state.rank);
-      const matchesLimitedTag = state.tab === 'events' || state.limitedTag === 'all' || record.limitedTag === state.limitedTag;
+      const matchesRank = state.tab === 'events' || state.rank.length === 0 || state.rank.includes(String(record.rank));
+      const matchesLimitedTag = state.tab === 'events' || state.limitedTag.length === 0 || state.limitedTag.includes(record.limitedTag);
+      const hasFieldEffect = state.tab === 'events' || matchesFieldEffectSelection(record, state.fieldEffect);
       const matchesDate = state.tab === 'pairs' || state.date === 'all' || record.start.slice(0, 10) === state.date;
       const matchesStatus = state.tab === 'pairs' || state.status === 'all' || eventStatus(record) === state.status;
-      return matchesQuery && matchesCategory && matchesAttribute && matchesRole && matchesRank && matchesLimitedTag && matchesDate && matchesStatus;
+      return matchesQuery && matchesCategory && matchesAttribute && matchesRole && matchesRank && matchesLimitedTag && hasFieldEffect && matchesDate && matchesStatus;
     });
     return state.tab === 'pairs' ? sortPairs(filtered, state.sort) : filtered;
   }
@@ -37,8 +44,13 @@ import { sourcePath } from './web-path.mjs';
 
   const exToggleMarkup = (record) => `<button class="ex-toggle" type="button" data-normal-image="${sourcePath(record.image)}" data-ex-image="${sourcePath(record.exImage)}" ${record.exImage ? '' : 'disabled'} aria-label="${record.exImage ? '目前為普通頭像，點擊切換到★6 EX' : '沒有★6 EX頭像'}" title="${record.exImage ? '目前為普通頭像，點擊切換到★6 EX' : '沒有★6 EX頭像'}">普通</button>`;
 
+  const fieldEffectChip = (effect) => {
+    const tone = fieldEffectToneClass(effect.kind, effect.code);
+    return `<span class="field-chip ${tone}${effect.ex ? ' is-ex' : ''}">${effect.ex ? 'EX' : ''}${escapeHtml(getFieldEffectLabel(effect.kind, effect.code))}</span>`;
+  };
+
   function renderCard(record) {
-    if (state.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}"><div class="pair-art">${imageMarkup(record.image, record.name)}${exToggleMarkup(record)}</div><div class="pair-meta"><span class="pair-topline">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}${record.rank != null ? `<span class="pair-rank rank-fam-${rankFamily(record.rank)}" title="田雞榜等級">${getRankTierLabel(record.rank)}</span>` : ''}</span><span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${record.role === '物理攻擊型' ? 'physical' : 'special'}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}</div></div></a></article>`;
+    if (state.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}"><div class="pair-art">${imageMarkup(record.image, record.name)}${exToggleMarkup(record)}</div><div class="pair-meta"><span class="pair-topline">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}${record.rank != null ? `<span class="pair-rank rank-fam-${rankFamily(record.rank)}" title="田雞榜等級">${getRankTierLabel(record.rank)}</span>` : ''}</span><span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${record.role === '物理攻擊型' ? 'physical' : 'special'}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}${(record.fieldEffects ?? []).map(fieldEffectChip).join('')}</div></div></a></article>`;
     const status = eventStatus(record);
     return `<article class="event-card"><div class="event-visual">${record.image ? imageMarkup(record.image, record.title) : '<div class="event-art-empty" aria-hidden="true"></div>'}</div><div class="event-info"><div class="event-dates">${formatDate(record.start)} — ${formatDate(record.end)}<span class="event-status ${status}">${labels[status]}</span></div><h3 class="event-title">${escapeHtml(record.title)}</h3><p class="event-desc">${escapeHtml(record.description || '暫無活動說明')}</p></div></article>`;
   }
@@ -59,6 +71,9 @@ import { sourcePath } from './web-path.mjs';
     document.querySelectorAll('.custom-select').forEach((container) => {
       const select = container.querySelector('select');
       const key = container.dataset.filter;
+      const stateKey = stateKeyOf(key);
+      const multi = MULTI_FILTER_KEYS.has(stateKey);
+      const selectedValues = multi ? state[stateKey] : null;
       let trigger = container.querySelector('.select-trigger');
       let menu = container.querySelector('.select-menu');
       if (!trigger) {
@@ -68,7 +83,7 @@ import { sourcePath } from './web-path.mjs';
         trigger.setAttribute('aria-haspopup', 'listbox');
         container.insertBefore(trigger, select);
         menu = document.createElement('div');
-        menu.className = `select-menu${key === 'attribute' ? ' attribute-menu' : ''}`;
+        menu.className = `select-menu${key === 'attribute' ? ' attribute-menu' : ''}${key === 'fieldEffect' ? ' fieldeffect-menu' : ''}`;
         menu.setAttribute('role', 'listbox');
         menu.hidden = true;
         container.append(menu);
@@ -76,14 +91,43 @@ import { sourcePath } from './web-path.mjs';
         select.tabIndex = -1;
         select.setAttribute('aria-hidden', 'true');
       }
-      const selected = select.options[select.selectedIndex];
-      trigger.innerHTML = `<strong>${escapeHtml(getFilterOptionLabel(key, selected?.value || 'all'))}</strong><i class="select-chevron" aria-hidden="true"></i>`;
+      const triggerLabel = selectedValues
+        ? (selectedValues.length === 0 ? '全部' : selectedValues.length === 1 ? getFilterOptionLabel(key, selectedValues[0]) : `${getFilterOptionLabel(key, selectedValues[0])} +${selectedValues.length - 1}`)
+        : getFilterOptionLabel(key, select.options[select.selectedIndex]?.value || 'all');
+      trigger.innerHTML = `<strong>${escapeHtml(triggerLabel)}</strong><i class="select-chevron" aria-hidden="true"></i>`;
       trigger.setAttribute('aria-expanded', String(!menu.hidden));
-      menu.innerHTML = [...select.options].map((option) => {
-        const isSelected = option.value === select.value;
-        const optionClass = key === 'attribute' && option.value !== 'all' ? attributeClass(option.value) : '';
-        return `<button class="select-option ${optionClass} ${isSelected ? 'is-selected' : ''}" type="button" role="option" aria-selected="${isSelected}" data-value="${escapeHtml(option.value)}"><span>${escapeHtml(getFilterOptionLabel(key, option.value))}</span>${isSelected ? '<span class="option-check" aria-hidden="true">✓</span>' : ''}</button>`;
-      }).join('');
+
+      const isSelected = (value) => (selectedValues ? (value === 'all' ? selectedValues.length === 0 : selectedValues.includes(value)) : select.value === value);
+      const check = (on) => (on ? '<span class="option-check" aria-hidden="true">✓</span>' : '');
+      const optionButton = (option, buttonClass = '', dotClass = '') => {
+        const on = isSelected(option.value);
+        const dot = dotClass ? `<i class="fx-dot ${dotClass}" aria-hidden="true"></i>` : '';
+        return `<button class="select-option ${buttonClass}${on ? ' is-selected' : ''}" type="button" role="option" aria-selected="${on}" data-value="${escapeHtml(option.value)}">${dot}<span>${escapeHtml(option.text)}</span>${check(on)}</button>`;
+      };
+
+      if (key === 'fieldEffect') {
+        const dotFor = (value) => {
+          if (value === 'all') return '';
+          if (value === 'ex') return 'fx-ex-dot';
+          const colon = value.indexOf(':');
+          return fieldEffectToneClass(value.slice(0, colon), value.slice(colon + 1));
+        };
+        const blocks = [
+          optionButton(select.querySelector('option[value="all"]')),
+          optionButton(select.querySelector('option[value="ex"]'), 'fx-ex-option', 'fx-ex-dot'),
+        ];
+        for (const group of select.querySelectorAll('optgroup')) {
+          blocks.push(`<span class="fx-group-label" role="presentation">${escapeHtml(group.label)}</span>`);
+          blocks.push([...group.querySelectorAll('option')].map((option) => optionButton(option, '', dotFor(option.value))).join(''));
+        }
+        menu.innerHTML = blocks.join('');
+      } else {
+        menu.innerHTML = [...select.options].map((option) => {
+          const on = isSelected(option.value);
+          const optionClass = key === 'attribute' && option.value !== 'all' ? attributeClass(option.value) : '';
+          return `<button class="select-option ${optionClass}${on ? ' is-selected' : ''}" type="button" role="option" aria-selected="${on}" data-value="${escapeHtml(option.value)}"><span>${escapeHtml(getFilterOptionLabel(key, option.value))}</span>${check(on)}</button>`;
+        }).join('');
+      }
     });
   }
 
@@ -92,14 +136,20 @@ import { sourcePath } from './web-path.mjs';
   }
 
   function renderActiveFilters() {
-    const active = ['query', 'category', 'attribute', 'role', 'rank', 'limitedTag', 'date', 'status']
-      .filter((key) => state[key] && state[key] !== 'all');
+    // 多選篩選每個選中值各產生一顆可單獨移除的晶片；單選篩選一顆。
+    const chips = [];
+    const push = (key, value, label) => {
+      chips.push(`<button class="active-filter" type="button" data-clear-filter="${key}" data-clear-value="${escapeHtml(value)}">${filterLabels[key]}：${escapeHtml(label)}<span aria-hidden="true">×</span></button>`);
+    };
+    if (state.query.trim()) push('query', state.query, `「${state.query.trim()}」`);
+    for (const key of ['category', 'attribute', 'role', 'rank', 'limitedTag', 'fieldEffect', 'date', 'status']) {
+      const value = state[key];
+      if (Array.isArray(value)) value.forEach((item) => push(key, item, getFilterOptionLabel(key, item)));
+      else if (value && value !== 'all') push(key, value, getFilterOptionLabel(key, value));
+    }
     $('#clear-filters').textContent = getActiveFilterCount(state) ? `清除篩選（${getActiveFilterCount(state)}）` : '清除篩選';
-    $('#active-filters').innerHTML = active.length
-      ? `<span class="active-filters-label">目前篩選</span>${active.map((key) => {
-        const value = key === 'query' ? `「${escapeHtml(state[key])}」` : escapeHtml(getFilterOptionLabel(key, state[key]));
-        return `<button class="active-filter" type="button" data-clear-filter="${key}">${filterLabels[key]}：${value}<span aria-hidden="true">×</span></button>`;
-      }).join('')}`
+    $('#active-filters').innerHTML = chips.length
+      ? `<span class="active-filters-label">目前篩選</span>${chips.join('')}`
       : '';
   }
 
@@ -126,8 +176,10 @@ import { sourcePath } from './web-path.mjs';
     $('#section-title').textContent = state.tab === 'pairs' ? '拍組圖鑑' : '活動日志';
     $('#section-kicker').textContent = state.tab === 'pairs' ? 'PAIR INDEX' : 'EVENT LOG';
     document.querySelectorAll('.custom-select').forEach((control) => {
-      const select = control.querySelector('select');
-      control.classList.toggle('is-active', isFilterActive(control.dataset.filter, select.value));
+      const stateKey = stateKeyOf(control.dataset.filter);
+      const value = state[stateKey];
+      const active = Array.isArray(value) ? value.length > 0 : isFilterActive(control.dataset.filter, control.querySelector('select').value);
+      control.classList.toggle('is-active', active);
     });
     renderCustomSelects();
     renderActiveFilters();
@@ -141,31 +193,45 @@ import { sourcePath } from './web-path.mjs';
   function setTab(tab) { state.tab = tab; state.page = 1; document.querySelectorAll('.tab').forEach((button) => button.classList.toggle('is-active', button.dataset.tab === tab)); render(); }
   document.querySelectorAll('.tab').forEach((button) => button.addEventListener('click', () => setTab(button.dataset.tab)));
   $('#search').addEventListener('input', (event) => { state.query = event.target.value; state.page = 1; render(); });
-  $('#category-filter').addEventListener('change', (event) => { state.category = event.target.value; state.page = 1; render(); });
-  $('#attribute-filter').addEventListener('change', (event) => { state.attribute = event.target.value; state.page = 1; render(); });
   $('#role-filter').addEventListener('change', (event) => { state.role = event.target.value; state.page = 1; render(); });
-  $('#rank-filter').addEventListener('change', (event) => { state.rank = event.target.value; state.page = 1; render(); });
-  $('#limited-tag-filter').addEventListener('change', (event) => { state.limitedTag = event.target.value; state.page = 1; render(); });
   $('#status-filter').addEventListener('change', (event) => { state.status = event.target.value; state.page = 1; render(); });
   $('#date-filter').addEventListener('change', (event) => { state.date = event.target.value; state.page = 1; render(); });
   $('#page-size').addEventListener('change', (event) => { state.pageSize = Number(event.target.value); state.page = 1; render(); });
   $('#sort-filter').addEventListener('change', (event) => { state.sort = event.target.value; state.page = 1; render(); });
   $('#clear-filters').addEventListener('click', () => {
-    Object.assign(state, { query: '', category: 'all', attribute: 'all', role: 'all', rank: 'all', limitedTag: 'all', date: 'all', status: 'all', sort: 'base-desc', page: 1 });
+    Object.assign(state, { query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], date: 'all', status: 'all', sort: 'base-desc', page: 1 });
     $('#search').value = '';
-    ['category-filter', 'attribute-filter', 'role-filter', 'rank-filter', 'limited-tag-filter', 'date-filter', 'status-filter', 'sort-filter'].forEach((id) => { $(`#${id}`).value = id === 'sort-filter' ? 'base-desc' : 'all'; });
+    ['role-filter', 'date-filter', 'status-filter', 'sort-filter'].forEach((id) => { $(`#${id}`).value = id === 'sort-filter' ? 'base-desc' : 'all'; });
     render();
   });
   $('#toolbar').addEventListener('click', (event) => {
     const trigger = event.target.closest('.select-trigger');
     const option = event.target.closest('.select-option');
     if (option) {
-      const menu = option.closest('.select-menu');
+      // 擋住 document 的「點外側關閉」：多選時 render() 會重建選單、被點的選項鈕隨之卸載，
+      // 若讓事件繼續冒泡，外側判斷會把卸載的目標誤認為「選單外」而把選單關掉。
+      event.stopPropagation();
       const container = option.closest('.custom-select');
+      const stateKey = stateKeyOf(container.dataset.filter);
+      const value = option.dataset.value;
+      if (MULTI_FILTER_KEYS.has(stateKey)) {
+        // 多選：切換該值，選單保持展開以便連選；「全部」會清空。
+        const list = state[stateKey];
+        if (value === 'all') list.length = 0;
+        else {
+          const index = list.indexOf(value);
+          if (index >= 0) list.splice(index, 1);
+          else list.push(value);
+        }
+        state.page = 1;
+        render();
+        return;
+      }
+      const menu = option.closest('.select-menu');
       const select = container.querySelector('select');
       menu.hidden = true;
       container.querySelector('.select-trigger').setAttribute('aria-expanded', 'false');
-      select.value = option.dataset.value;
+      select.value = value;
       select.dispatchEvent(new Event('change', { bubbles: true }));
       return;
     }
@@ -190,11 +256,16 @@ import { sourcePath } from './web-path.mjs';
     const button = event.target.closest('[data-clear-filter]');
     if (!button) return;
     const key = button.dataset.clearFilter;
-    state[key] = '';
-    if (key !== 'query') state[key] = 'all';
-    if (key === 'query') $('#search').value = '';
-    else if (key === 'attribute') $('#attribute-filter').value = 'all';
-    else $(`#${filterElements[key]}`).value = 'all';
+    const value = button.dataset.clearValue;
+    if (key === 'query') { state.query = ''; $('#search').value = ''; }
+    else if (MULTI_FILTER_KEYS.has(key)) {
+      const index = state[key].indexOf(value);
+      if (index >= 0) state[key].splice(index, 1);
+    } else {
+      state[key] = 'all';
+      const id = filterElements[key];
+      if (id) $(`#${id}`).value = 'all';
+    }
     state.page = 1;
     render();
   });
@@ -220,6 +291,14 @@ import { sourcePath } from './web-path.mjs';
   $('#role-filter').innerHTML = ['<option value="all">全部</option>', ...getPairRoles(data.pairs).map((role) => `<option value="${escapeHtml(role)}">${escapeHtml(getFilterOptionLabel('role', role))}</option>`)].join('');
   $('#rank-filter').innerHTML = ['<option value="all">全部</option>', ...rankLevels.map((tier) => `<option value="${tier.value}">${escapeHtml(tier.label)}</option>`)].join('');
   $('#limited-tag-filter').innerHTML = ['<option value="all">全部</option>', ...getPairLimitedTags(data.pairs).map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`)].join('');
+  const fieldGroupLabels = { weather: '天氣', terrain: '場地', zone: '領域' };
+  $('#field-effect-filter').innerHTML =
+    '<option value="all">全部</option><option value="ex">ＥＸ 場效</option>'
+    + ['weather', 'terrain', 'zone'].map((kind) => {
+      const options = getFieldEffectOptions().filter((effect) => effect.kind === kind)
+        .map((effect) => `<option value="${effect.kind}:${escapeHtml(effect.code)}">${escapeHtml(effect.label)}</option>`).join('');
+      return `<optgroup label="${fieldGroupLabels[kind]}">${options}</optgroup>`;
+    }).join('');
   $('#date-filter').innerHTML = ['<option value="all">全部</option>', ...[...new Set(data.events.map((event) => event.start.slice(0, 10)))].map((date) => `<option value="${date}">${date.replaceAll('-', '/')}</option>`)].join('');
   initializeCustomSelects();
   render();

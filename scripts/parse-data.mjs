@@ -34,6 +34,50 @@ export function parsePairRole(html) {
   return '';
 }
 
+// 場效（天氣／場地／領域）：設定句固定為「將天氣|場地|領域變成[ＥＸ]Ｘ」，招式、被動、
+// 石盤 tile 描述都用此句式。名稱後必須緊跟句讀/標籤終止字元，條件句（「變成日照強烈時」
+// 「當領域為Ｘ時」「延長Ｘ領域的持續時間」）便不會誤抓。
+const FIELD_EFFECT_DEFS = [
+  { kind: 'weather', code: 'sun', names: ['日照強烈的狀態', '日照強烈'] },
+  { kind: 'weather', code: 'rain', names: ['下雨'] },
+  { kind: 'weather', code: 'sand', names: ['沙暴'] },
+  { kind: 'weather', code: 'hail', names: ['冰雹'] },
+  { kind: 'terrain', code: 'electric', names: ['電氣場地'] },
+  { kind: 'terrain', code: 'grassy', names: ['青草場地'] },
+  { kind: 'terrain', code: 'psychic', names: ['精神場地'] },
+  { kind: 'zone', code: '一般', names: ['淨空領域'] },
+  { kind: 'zone', code: '冰', names: ['冰柱領域'] },
+  { kind: 'zone', code: '格鬥', names: ['拳頭領域'] },
+  { kind: 'zone', code: '毒', names: ['劇毒領域'] },
+  { kind: 'zone', code: '地面', names: ['大地領域'] },
+  { kind: 'zone', code: '飛行', names: ['藍天領域'] },
+  { kind: 'zone', code: '蟲', names: ['玉蟲領域'] },
+  { kind: 'zone', code: '岩石', names: ['岩石領域'] },
+  { kind: 'zone', code: '幽靈', names: ['妖怪領域'] },
+  { kind: 'zone', code: '龍', names: ['龍之領域'] },
+  { kind: 'zone', code: '惡', names: ['惡顏領域'] },
+  { kind: 'zone', code: '鋼', names: ['鋼鐵領域'] },
+  { kind: 'zone', code: '妖精', names: ['妖精領域'] },
+];
+
+const FIELD_EFFECT_BY_NAME = new Map(FIELD_EFFECT_DEFS.flatMap((def) => def.names.map((name) => [name, def])));
+const FIELD_EFFECT_PATTERN = new RegExp(
+  `將(?:天氣|場地|領域)變成(ＥＸ)?(${FIELD_EFFECT_DEFS.flatMap((def) => def.names).sort((a, b) => b.length - a.length).join('|')})(?=[。<\\n'"]|$)`,
+  'g',
+);
+const FIELD_EFFECT_ORDER = new Map(FIELD_EFFECT_DEFS.map((def, index) => [`${def.kind}:${def.code}`, index]));
+
+export function parsePairFieldEffects(html) {
+  const found = new Map();
+  for (const match of html.matchAll(FIELD_EFFECT_PATTERN)) {
+    const def = FIELD_EFFECT_BY_NAME.get(match[2]);
+    if (!def) continue;
+    const key = `${def.kind}:${def.code}`;
+    found.set(key, { kind: def.kind, code: def.code, ex: Boolean(match[1]) || (found.get(key)?.ex ?? false) });
+  }
+  return [...found.values()].sort((a, b) => FIELD_EFFECT_ORDER.get(`${a.kind}:${a.code}`) - FIELD_EFFECT_ORDER.get(`${b.kind}:${b.code}`));
+}
+
 export function parsePairLimitedTag(html) {
   const title = html.match(/<th[^>]*>([\s\S]*?)<\/th>/i)?.[1];
   const plainTitle = title ? stripTags(title).replace(/\s+/g, ' ') : '';

@@ -25,7 +25,13 @@
     if (tables[0]) addSection(tables[0], `${prefix}-profile`, '基本資料');
     if (tables[1]) addSection(tables[1], `${prefix}-stats`, '能力值');
     if (tables.some((table) => table.classList.contains('move'))) addSection(tables.find((table) => table.classList.contains('move')), `${prefix}-moves`, '招式');
-    if (tables.some((table) => table.classList.contains('passive'))) addSection(tables.find((table) => table.classList.contains('passive')), `${prefix}-passives`, '被動能力');
+    // 「專用的…潛能餅乾」表格雖與被動同 class，但屬於潛能（餅乾）技能，獨立成段。
+    const passiveTables = tables.filter((table) => table.classList.contains('passive'));
+    const isCookieTable = (table) => table.textContent.includes('潛能餅乾');
+    const firstPassive = passiveTables.find((table) => !isCookieTable(table));
+    const firstCookie = passiveTables.find(isCookieTable);
+    if (firstPassive) addSection(firstPassive, `${prefix}-passives`, '被動能力');
+    if (firstCookie) addSection(firstCookie, `${prefix}-cookies`, '潛能');
     if (tables.some((table) => table.classList.contains('team'))) addSection(tables.find((table) => table.classList.contains('team')), `${prefix}-tags`, '標籤');
   });
 

@@ -6,7 +6,7 @@ export function getPageItems(currentPage, totalPages) {
 }
 
 export function getViewFilters(tab) {
-  return tab === 'pairs' ? ['category', 'attribute', 'role', 'rank'] : ['date', 'status'];
+  return tab === 'pairs' ? ['category', 'attribute', 'role', 'rank', 'fieldEffect'] : ['date', 'status'];
 }
 
 // 田雞榜等級：1~15 的梯子。四個球級（新手/精靈球/超級球/高級球）各分 1<2<3 三檔，
@@ -86,14 +86,82 @@ export function getAttributeOptions() {
   return ['all', ...pairAttributes];
 }
 
+// 場效（天氣／場地／領域）：code 與 parse-data.mjs 的 parsePairFieldEffects 輸出一致；
+// 領域 code 即屬性名，卡片標籤直接沿用屬性配色。
+export const fieldEffectDefs = [
+  { kind: 'weather', code: 'sun', label: '大晴天' },
+  { kind: 'weather', code: 'rain', label: '下雨' },
+  { kind: 'weather', code: 'sand', label: '沙暴' },
+  { kind: 'weather', code: 'hail', label: '冰雹' },
+  { kind: 'terrain', code: 'electric', label: '電氣場地' },
+  { kind: 'terrain', code: 'grassy', label: '青草場地' },
+  { kind: 'terrain', code: 'psychic', label: '精神場地' },
+  { kind: 'zone', code: '一般', label: '淨空領域' },
+  { kind: 'zone', code: '冰', label: '冰柱領域' },
+  { kind: 'zone', code: '格鬥', label: '拳頭領域' },
+  { kind: 'zone', code: '毒', label: '劇毒領域' },
+  { kind: 'zone', code: '地面', label: '大地領域' },
+  { kind: 'zone', code: '飛行', label: '藍天領域' },
+  { kind: 'zone', code: '蟲', label: '玉蟲領域' },
+  { kind: 'zone', code: '岩石', label: '岩石領域' },
+  { kind: 'zone', code: '幽靈', label: '妖怪領域' },
+  { kind: 'zone', code: '龍', label: '龍之領域' },
+  { kind: 'zone', code: '惡', label: '惡顏領域' },
+  { kind: 'zone', code: '鋼', label: '鋼鐵領域' },
+  { kind: 'zone', code: '妖精', label: '妖精領域' },
+];
+
+export function getFieldEffectOptions() {
+  return fieldEffectDefs;
+}
+
+export function getFieldEffectLabel(kind, code) {
+  return fieldEffectDefs.find((def) => def.kind === kind && def.code === code)?.label ?? '';
+}
+
+// 單一值比對：'ex' 比對任一ＥＸ強化場效；其餘為 kind:code 比對同名場效（ＥＸ 版也算）。
+export function matchesFieldEffect(pair, value) {
+  if (!value || value === 'all') return true;
+  const effects = pair.fieldEffects ?? [];
+  if (value === 'ex') return effects.some((effect) => effect.ex);
+  const separator = value.indexOf(':');
+  const kind = value.slice(0, separator);
+  const code = value.slice(separator + 1);
+  return effects.some((effect) => effect.kind === kind && effect.code === code);
+}
+
+// 多選組合：'ex' 是修飾子而非並列選項。與具體場效一起選時為 AND（該場效必須是 ＥＸ 強化版）；
+// 只選 'ex'（沒選具體場效）時比對任一 ＥＸ 場效；空陣列＝不篩選。
+export function matchesFieldEffectSelection(pair, values) {
+  if (!values || values.length === 0) return true;
+  const effects = pair.fieldEffects ?? [];
+  const exOnly = values.includes('ex');
+  const wanted = values.filter((value) => value !== 'ex' && value !== 'all');
+  if (wanted.length === 0) return !exOnly || effects.some((effect) => effect.ex);
+  return wanted.some((value) => {
+    const separator = value.indexOf(':');
+    const kind = value.slice(0, separator);
+    const code = value.slice(separator + 1);
+    return effects.some((effect) => effect.kind === kind && effect.code === code && (!exOnly || effect.ex));
+  });
+}
+
 export function getActiveFilterCount(state) {
-  return ['query', 'category', 'attribute', 'role', 'rank', 'limitedTag', 'date', 'status']
-    .filter((key) => state[key] && state[key] !== 'all').length;
+  return ['query', 'category', 'attribute', 'role', 'rank', 'limitedTag', 'fieldEffect', 'date', 'status']
+    .filter((key) => {
+      const value = state[key];
+      return Array.isArray(value) ? value.length > 0 : Boolean(value) && value !== 'all';
+    }).length;
 }
 
 export function getFilterOptionLabel(filter, value) {
   if (value === 'all') return '全部';
   if (filter === 'attribute') return value;
+  if (filter === 'fieldEffect') {
+    if (value === 'ex') return 'ＥＸ';
+    const separator = value.indexOf(':');
+    return getFieldEffectLabel(value.slice(0, separator), value.slice(separator + 1));
+  }
   if (filter === 'rank') return getRankTierLabel(Number(value));
   if (filter === 'role') return value === '物理攻擊型' ? '物攻' : value === '特殊攻擊型' ? '特攻' : value;
   if (filter === 'sort') return {

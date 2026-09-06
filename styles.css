@@ -132,7 +132,7 @@ body { font-size: var(--portal-body-size); }
   .pair-meta { padding: 9px 10px 11px; }
   .pair-name { line-height: 1.5; }
   .pair-badges { gap: 4px; margin-top: 8px; }
-  .pair-role, .attribute-chip { padding: 2px 5px; font-size: 9px; }
+  .pair-role, .attribute-chip, .field-chip { padding: 2px 5px; font-size: 9px; }
   .event-visual { height: clamp(150px, 43vw, 190px); }
   .event-info { padding: 14px; }
   .event-dates { line-height: 1.8; }
@@ -172,6 +172,30 @@ body { font-size: var(--portal-body-size); }
 .pair-badges .pair-role { color: #3d2818; border-color: #ffd2a6; background: #ffc27d; }
 .pair-badges .pair-role.physical { color: #102b58; border-color: #b9d4ff; background: #91b8ff; }
 .pair-badges .attribute-chip { border-color: rgba(255, 255, 255, .62); }
+/* 場效標籤：天氣（晴橙/雨藍/沙褐/冰雹青）、場地（電黃/草綠/精神粉）、領域沿用屬性色。
+   色票類別不帶前綴，卡片徽章與篩選選單色點共用同一語意色。ＥＸ 強化版統一金邊。 */
+.pair-badges .field-chip { display: inline-block; padding: 2px 6px; border: 1px solid currentColor; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1.45; white-space: nowrap; box-shadow: 0 1px 0 rgba(0, 0, 0, .16); }
+.field-weather-sun { color: #4a3300; background: #ffc531; }
+.field-weather-rain { color: #0d2b45; background: #6fb6ec; }
+.field-weather-sand { color: #3d2c12; background: #d9b38c; }
+.field-weather-hail { color: #12404a; background: #b8e3ec; }
+.field-terrain-electric { color: #3d3500; background: #f2d94b; }
+.field-terrain-grassy { color: #123a1a; background: #7fc96a; }
+.field-terrain-psychic { color: #4a1238; background: #e88fd0; }
+.pair-badges .field-chip.is-ex { border-color: #ffd83d; box-shadow: 0 0 0 1px rgba(255, 216, 61, .5), 0 1px 0 rgba(0, 0, 0, .16); }
+
+/* 場效篩選面板：與屬性篩選同款式的三欄網格，並依天氣／場地／領域分組。 */
+.fieldeffect-select .select-menu { min-width: 300px; display: grid; grid-template-columns: repeat(3, minmax(78px, 1fr)); gap: 5px; padding: 10px; }
+.fieldeffect-select .select-menu[hidden] { display: none; }
+.fieldeffect-select .fx-group-label { grid-column: 1 / -1; margin: 6px 0 0; padding: 4px 2px 0; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .14em; }
+.fieldeffect-select .fx-group-label:first-of-type { margin-top: 0; }
+.fieldeffect-select .select-option { justify-content: flex-start; gap: 7px; min-height: 36px; padding: 6px 8px; white-space: nowrap; }
+.fieldeffect-select .select-option .option-check { margin-left: auto; }
+.fieldeffect-select .fx-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.fieldeffect-select .fx-ex-dot { background: #ffd83d; box-shadow: 0 0 6px rgba(255, 216, 61, .65); }
+.fieldeffect-select .fx-ex-option { color: #ffd83d; }
+.fieldeffect-select .fx-ex-option.is-selected { border-color: #ffd83d; background: rgba(255, 216, 61, .12); }
+@media (max-width: 620px) { .fieldeffect-select .select-menu { min-width: min(300px, 82vw); grid-template-columns: repeat(3, minmax(0, 1fr)); } .fieldeffect-select .select-option { font-size: 12px; padding: 6px 6px; gap: 6px; } }
 .pair-badges .attribute-0,
 .pair-badges .attribute-2,
 .pair-badges .attribute-3,

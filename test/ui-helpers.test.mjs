@@ -46,8 +46,58 @@ test('大量頁碼時只顯示首尾、目前頁附近與省略號', () => {
 });
 
 test('拍組與活動使用各自的篩選項', () => {
-  assert.deepEqual(getViewFilters('pairs'), ['category', 'attribute', 'role', 'rank']);
+  assert.deepEqual(getViewFilters('pairs'), ['category', 'attribute', 'role', 'rank', 'fieldEffect']);
   assert.deepEqual(getViewFilters('events'), ['date', 'status']);
+});
+
+test('場效提供 20 種選項且標籤可查', () => {
+  const options = uiHelpers.getFieldEffectOptions();
+  assert.equal(options.length, 20);
+  assert.equal(uiHelpers.getFieldEffectLabel('weather', 'sun'), '大晴天');
+  assert.equal(uiHelpers.getFieldEffectLabel('terrain', 'electric'), '電氣場地');
+  assert.equal(uiHelpers.getFieldEffectLabel('zone', '妖精'), '妖精領域');
+  assert.equal(uiHelpers.getFilterOptionLabel('fieldEffect', 'zone:惡'), '惡顏領域');
+});
+
+test('場效篩選命中同類效果，EX 版也算命中，並支援只篩 ＥＸ', () => {
+  const pair = { fieldEffects: [{ kind: 'zone', code: '飛行', ex: true }, { kind: 'weather', code: 'rain', ex: false }] };
+  assert.equal(uiHelpers.matchesFieldEffect(pair, 'all'), true);
+  assert.equal(uiHelpers.matchesFieldEffect(pair, 'zone:飛行'), true);
+  assert.equal(uiHelpers.matchesFieldEffect(pair, 'weather:rain'), true);
+  assert.equal(uiHelpers.matchesFieldEffect(pair, 'zone:妖精'), false);
+  assert.equal(uiHelpers.matchesFieldEffect({}, 'zone:妖精'), false);
+  // 'ex' 只要任一場效為 ＥＸ 強化版即命中
+  assert.equal(uiHelpers.matchesFieldEffect(pair, 'ex'), true);
+  assert.equal(uiHelpers.matchesFieldEffect({ fieldEffects: [{ kind: 'weather', code: 'rain', ex: false }] }, 'ex'), false);
+  assert.equal(uiHelpers.getFilterOptionLabel('fieldEffect', 'ex'), 'ＥＸ');
+});
+
+test('ＥＸ 為在場效上的 AND 修飾：與具體場效同選時要求該場效為 ＥＸ', () => {
+  const exPsychic = { fieldEffects: [{ kind: 'terrain', code: 'psychic', ex: true }] };
+  const normalPsychic = { fieldEffects: [{ kind: 'terrain', code: 'psychic', ex: false }] };
+  const exZoneOnly = { fieldEffects: [{ kind: 'zone', code: '格鬥', ex: true }] };
+  // 不篩選＝全部；只選具體場效（不含 ＥＸ）則 ＥＸ 版與普通版都算
+  assert.equal(uiHelpers.matchesFieldEffectSelection(exPsychic, []), true);
+  assert.equal(uiHelpers.matchesFieldEffectSelection(exPsychic, ['terrain:psychic']), true);
+  assert.equal(uiHelpers.matchesFieldEffectSelection(normalPsychic, ['terrain:psychic']), true);
+  // 只選 ＥＸ＝任一 ＥＸ 場效即可
+  assert.equal(uiHelpers.matchesFieldEffectSelection(exPsychic, ['ex']), true);
+  assert.equal(uiHelpers.matchesFieldEffectSelection(normalPsychic, ['ex']), false);
+  // 場效 + ＥＸ：該場效必須是 ＥＸ 強化版；他種場效是 ＥＸ 也不算
+  assert.equal(uiHelpers.matchesFieldEffectSelection(exPsychic, ['terrain:psychic', 'ex']), true);
+  assert.equal(uiHelpers.matchesFieldEffectSelection(normalPsychic, ['terrain:psychic', 'ex']), false);
+  assert.equal(uiHelpers.matchesFieldEffectSelection(exZoneOnly, ['terrain:psychic', 'ex']), false);
+});
+
+test('多選篩選（陣列）正確計入啟用數量', () => {
+  assert.equal(uiHelpers.getActiveFilterCount({
+    query: '', category: ['攻擊型', '技術型'], attribute: ['火'], role: 'all', rank: [],
+    limitedTag: [], fieldEffect: [], date: 'all', status: 'all'
+  }), 2);
+  assert.equal(uiHelpers.getActiveFilterCount({
+    query: '皮卡', category: [], attribute: [], role: 'all', rank: ['15', '14'],
+    limitedTag: [], fieldEffect: ['ex'], date: 'all', status: 'all'
+  }), 3);
 });
 
 test('田雞榜等級提供 1~15 的繁中標籤（球級細分 1/2/3，自由者最高）', () => {
