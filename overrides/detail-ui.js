@@ -32,7 +32,23 @@
     const firstCookie = passiveTables.find(isCookieTable);
     if (firstPassive) addSection(firstPassive, `${prefix}-passives`, '被動能力');
     if (firstCookie) addSection(firstCookie, `${prefix}-cookies`, '潛能');
-    if (tables.some((table) => table.classList.contains('team'))) addSection(tables.find((table) => table.classList.contains('team')), `${prefix}-tags`, '標籤');
+    const teamTable = tables.find((table) => table.classList.contains('team'));
+    if (teamTable) {
+      addSection(teamTable, `${prefix}-tags`, '標籤');
+      // 標籤表最後一列是探索特性（火辣辣／心暖暖／淚閃閃／稀有…，全寬置中），抽出獨立成段。
+      let exploreRow = null;
+      for (const row of teamTable.rows) {
+        if ([...row.cells].some((cell) => cell.colSpan > 1)) exploreRow = row;
+      }
+      if (exploreRow) {
+        exploreRow.remove();
+        const exploreTable = document.createElement('table');
+        exploreTable.className = 'explore';
+        exploreTable.append(exploreRow);
+        teamTable.after(exploreTable);
+        addSection(exploreTable, `${prefix}-explore`, '探索特性');
+      }
+    }
   });
 
   // 部分變化形態只提供能力值百分比，補算成完整等級表方便直接比較。

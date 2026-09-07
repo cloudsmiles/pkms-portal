@@ -207,6 +207,7 @@ th { color: #fff; background: var(--detail-accent-dark); font-weight: 700; }
 .move td:nth-child(2) { font-weight: 500; }
 .team { table-layout: fixed; }
 .team td { width: 33%; text-align: center; font-size: 12px; font-weight: 700; line-height: 1.5; vertical-align: middle; overflow-wrap: anywhere; word-break: break-all; white-space: normal; }
+.explore td { text-align: center; font-weight: 700; white-space: normal; overflow-wrap: anywhere; }
 .ap-btn { float: right; margin-left: 8px; padding: 5px 9px; border: 1px solid var(--detail-accent); border-radius: 6px; color: var(--detail-accent-dark); background: #e7f5f1; cursor: pointer; font-size: 12px; }
 .ap-btn:hover { color: #fff; background: var(--detail-accent); }
 
@@ -253,6 +254,8 @@ th { color: #fff; background: var(--detail-accent-dark); font-weight: 700; }
   .team { white-space: normal; }
   .team { display: table !important; width: 100%; table-layout: fixed; overflow: hidden; }
   .team td { min-width: 0; width: 33.333%; padding: 8px 5px; font-size: var(--detail-small-size); overflow-wrap: anywhere; word-break: break-all; white-space: normal; }
+  .explore { display: table !important; width: 100%; white-space: normal; overflow: hidden; }
+  .explore td { min-width: 0; padding: 8px 10px; font-size: var(--detail-small-size); white-space: normal; overflow-wrap: anywhere; }
 }
 
 @media (max-width: 420px) {
