@@ -46,8 +46,31 @@ test('大量頁碼時只顯示首尾、目前頁附近與省略號', () => {
 });
 
 test('拍組與活動使用各自的篩選項', () => {
-  assert.deepEqual(getViewFilters('pairs'), ['category', 'attribute', 'role', 'rank', 'fieldEffect']);
+  assert.deepEqual(getViewFilters('pairs'), ['category', 'attribute', 'role', 'rank', 'fieldEffect', 'formation']);
   assert.deepEqual(getViewFilters('events'), ['date', 'status']);
+});
+
+test('鬥陣標籤為完整名稱，篩選只依物攻／特攻／防禦類別', () => {
+  assert.equal(uiHelpers.getFormationLabel('伽勒爾', '防禦'), '伽勒爾鬥陣（防禦）');
+  assert.deepEqual(uiHelpers.getFormationCategories().map((category) => category.value), ['物理', '特殊', '防禦']);
+  assert.equal(uiHelpers.getFilterOptionLabel('formation', '物理'), '物攻');
+  assert.equal(uiHelpers.getFilterOptionLabel('formation', '特殊'), '特攻');
+  assert.equal(uiHelpers.getFilterOptionLabel('formation', '防禦'), '防禦');
+
+  const physical = { formations: [{ region: '卡洛斯', category: '物理' }] };
+  const special = { formations: [{ region: '阿羅拉', category: '特殊' }] };
+  const defense = { formations: [{ region: '伽勒爾', category: '防禦' }] };
+  const mixed = { formations: [{ region: '卡洛斯', category: '物理／特殊' }] };
+  assert.equal(uiHelpers.matchesFormationSelection(physical, []), true);
+  assert.equal(uiHelpers.matchesFormationSelection(physical, ['物理']), true);
+  assert.equal(uiHelpers.matchesFormationSelection(physical, ['特殊']), false);
+  assert.equal(uiHelpers.matchesFormationSelection(special, ['特殊']), true);
+  assert.equal(uiHelpers.matchesFormationSelection(defense, ['防禦']), true);
+  assert.equal(uiHelpers.matchesFormationSelection({}, ['物理']), false);
+  // 物理／特殊鬥陣同時命中物攻與特攻
+  assert.equal(uiHelpers.matchesFormationSelection(mixed, ['物理']), true);
+  assert.equal(uiHelpers.matchesFormationSelection(mixed, ['特殊']), true);
+  assert.equal(uiHelpers.matchesFormationSelection(mixed, ['防禦']), false);
 });
 
 test('場效提供 20 種選項且標籤可查', () => {

@@ -67,15 +67,84 @@ const FIELD_EFFECT_PATTERN = new RegExp(
 );
 const FIELD_EFFECT_ORDER = new Map(FIELD_EFFECT_DEFS.map((def, index) => [`${def.kind}:${def.code}`, index]));
 
-export function parsePairFieldEffects(html) {
-  const found = new Map();
-  for (const match of html.matchAll(FIELD_EFFECT_PATTERN)) {
-    const def = FIELD_EFFECT_BY_NAME.get(match[2]);
-    if (!def) continue;
-    const key = `${def.kind}:${def.code}`;
-    found.set(key, { kind: def.kind, code: def.code, ex: Boolean(match[1]) || (found.get(key)?.ex ?? false) });
+// 鬥陣：設定句為「（我方）場地變成[ＥＸ]？{地區}鬥陣（{類別}）」，見於招式、被動與石盤 tile。
+// 與天氣／場地／領域互不撞名（鬥陣名以「鬥陣（…）」結尾）。條件句用「為Ｘ鬥陣」「延長Ｘ鬥陣」，
+// 沒有「變成…鬥陣（類別）」，故不會誤抓；「任一鬥陣」「任一地區鬥陣」也不在地區清單內。
+const FORMATION_REGIONS = ['關都', '城都', '豐緣', '神奧', '合眾', '卡洛斯', '阿羅拉', '伽勒爾', '帕底亞', '帕希歐'];
+const FORMATION_CATEGORY_ORDER = ['物理', '特殊', '物理／特殊', '防禦'];
+const FORMATION_PATTERN = new RegExp(
+  `場地變成(ＥＸ)?(${FORMATION_REGIONS.join('|')})鬥陣（(物理／特殊|物理|特殊|防禦)）`,
+  'g',
+);
+const FORMATION_ORDER = new Map(
+  FORMATION_REGIONS.flatMap((region, regionIndex) =>
+    FORMATION_CATEGORY_ORDER.map((category, categoryIndex) => [`${region}:${category}`, regionIndex * 10 + categoryIndex])),
+);
+
+// 石盤 tile：json = [[id, '名稱', '說明', 型態, 能量, 石盤等級(lv), 顏色, x, y, []], ...]。
+// 只取到第 6 欄（lv），尾端的 [] 與後續欄位不需解析。
+const TILE_PATTERN = /\[\d{8,12}\s*,\s*'(?:[^'\\]|\\.)*'\s*,\s*'((?:[^'\\]|\\.)*)'\s*,\s*[^,\]]*,\s*[^,\]]*,\s*(\d+)/g;
+
+function unescapeTileText(value) {
+  return value.replace(/\\n/g, '\n').replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+}
+
+// 把 HTML 拆成「一般頁面（招式／被動表格）」與「石盤 tile 描述」，以便判斷場效／鬥陣是否
+// 只能靠開石盤取得。
+function splitBaseAndGrid(html) {
+  const gridText = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => match[1]).join('\n');
+  const baseText = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+  return { baseText, gridText };
+}
+
+function gridTiles(gridText) {
+  const tiles = [];
+  let match;
+  TILE_PATTERN.lastIndex = 0;
+  while ((match = TILE_PATTERN.exec(gridText))) {
+    tiles.push({ lv: Number(match[2]), desc: unescapeTileText(match[1]) });
   }
-  return [...found.values()].sort((a, b) => FIELD_EFFECT_ORDER.get(`${a.kind}:${a.code}`) - FIELD_EFFECT_ORDER.get(`${b.kind}:${b.code}`));
+  return tiles;
+}
+
+// lv 為 null 代表來自招式／被動（不需石盤即可發動）；數字代表來自需該石盤等級的 tile。
+// 只要有任一來源是招式／被動，gridLevel 即為 null；否則取各 tile 的最低等級。
+function mergeGridEffect(map, key, payload, ex, lv) {
+  const prev = map.get(key);
+  if (!prev) {
+    map.set(key, { ...payload, ex, gridLevel: lv == null ? null : lv });
+    return;
+  }
+  if (ex) prev.ex = true;
+  if (lv == null) prev.gridLevel = null;
+  else if (prev.gridLevel != null) prev.gridLevel = Math.min(prev.gridLevel, lv);
+}
+
+function scanBattleEffects(text, lv, fields, formations) {
+  for (const match of text.matchAll(FIELD_EFFECT_PATTERN)) {
+    const def = FIELD_EFFECT_BY_NAME.get(match[2]);
+    if (def) mergeGridEffect(fields, `${def.kind}:${def.code}`, { kind: def.kind, code: def.code }, Boolean(match[1]), lv);
+  }
+  for (const match of text.matchAll(FORMATION_PATTERN)) {
+    mergeGridEffect(formations, `${match[2]}:${match[3]}`, { region: match[2], category: match[3] }, Boolean(match[1]), lv);
+  }
+}
+
+// 一次回傳場效與鬥陣（含各自的 gridLevel）。
+export function parsePairEffects(html) {
+  const { baseText, gridText } = splitBaseAndGrid(html);
+  const fields = new Map();
+  const formations = new Map();
+  scanBattleEffects(baseText, null, fields, formations);
+  for (const tile of gridTiles(gridText)) scanBattleEffects(tile.desc, tile.lv, fields, formations);
+  return {
+    fieldEffects: [...fields.values()].sort((a, b) => FIELD_EFFECT_ORDER.get(`${a.kind}:${a.code}`) - FIELD_EFFECT_ORDER.get(`${b.kind}:${b.code}`)),
+    formations: [...formations.values()].sort((a, b) => FORMATION_ORDER.get(`${a.region}:${a.category}`) - FORMATION_ORDER.get(`${b.region}:${b.category}`)),
+  };
+}
+
+export function parsePairFieldEffects(html) {
+  return parsePairEffects(html).fieldEffects;
 }
 
 export function parsePairLimitedTag(html) {

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parsePairFieldEffects, parseEventRecords, getEventStatus } from '../scripts/parse-data.mjs';
+import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parsePairFieldEffects, parsePairEffects, parseEventRecords, getEventStatus } from '../scripts/parse-data.mjs';
 import { getProjectDir } from '../scripts/project-path.mjs';
 import { injectDetailAssets } from '../scripts/build-data.mjs';
 
@@ -92,29 +92,29 @@ test('從招式與被動描述解析天氣、場地、領域', () => {
   ].join('');
 
   assert.deepEqual(parsePairFieldEffects(grid), [
-    { kind: 'weather', code: 'rain', ex: false },
-    { kind: 'terrain', code: 'electric', ex: false },
-    { kind: 'zone', code: '妖精', ex: false }
+    { kind: 'weather', code: 'rain', ex: false, gridLevel: null },
+    { kind: 'terrain', code: 'electric', ex: false, gridLevel: null },
+    { kind: 'zone', code: '妖精', ex: false, gridLevel: null }
   ]);
 });
 
-test('石盤嵌入資料裡的場效設定句也能解析', () => {
-  const grid = `<script>const tiles = [[1014011049, '首次上場時變成惡顏領域', '首次上場時，會將領域變成惡顏領域。\\n（惡顏領域會提高惡屬性的攻擊的威力。）', 0, 5]];</script>`;
-  assert.deepEqual(parsePairFieldEffects(grid), [{ kind: 'zone', code: '惡', ex: false }]);
+test('石盤嵌入資料裡的場效設定句也能解析，並帶上該 tile 的石盤等級', () => {
+  const grid = `<script>const tiles = [[1014011049, '首次上場時變成惡顏領域', '首次上場時，會將領域變成惡顏領域。\\n（惡顏領域會提高惡屬性的攻擊的威力。）', 7, 84, 2, 'e6ce5e', 0, 0, []]];</script>`;
+  assert.deepEqual(parsePairFieldEffects(grid), [{ kind: 'zone', code: '惡', ex: false, gridLevel: 2 }]);
 });
 
 test('ＥＸ強化版場效標記為 ex，且與普通版去重後保留 ex', () => {
   const exZone = '<table class="move"><tr><td>首次使出此招式攻擊成功時，會將領域變成ＥＸ玉蟲領域。<br>（ＥＸ玉蟲領域會提高蟲屬性的攻擊的威力。）</td></tr></table>';
-  assert.deepEqual(parsePairFieldEffects(exZone), [{ kind: 'zone', code: '蟲', ex: true }]);
+  assert.deepEqual(parsePairFieldEffects(exZone), [{ kind: 'zone', code: '蟲', ex: true, gridLevel: null }]);
 
   const exWeather = '會將天氣變成ＥＸ下雨。';
-  assert.deepEqual(parsePairFieldEffects(exWeather), [{ kind: 'weather', code: 'rain', ex: true }]);
+  assert.deepEqual(parsePairFieldEffects(exWeather), [{ kind: 'weather', code: 'rain', ex: true, gridLevel: null }]);
 
   const exTerrain = '會將場地變成ＥＸ精神場地。';
-  assert.deepEqual(parsePairFieldEffects(exTerrain), [{ kind: 'terrain', code: 'psychic', ex: true }]);
+  assert.deepEqual(parsePairFieldEffects(exTerrain), [{ kind: 'terrain', code: 'psychic', ex: true, gridLevel: null }]);
 
   const both = '會將領域變成藍天領域。會將領域變成ＥＸ藍天領域。';
-  assert.deepEqual(parsePairFieldEffects(both), [{ kind: 'zone', code: '飛行', ex: true }]);
+  assert.deepEqual(parsePairFieldEffects(both), [{ kind: 'zone', code: '飛行', ex: true, gridLevel: null }]);
 });
 
 test('條件句與延長持續時間不計為場效', () => {
@@ -129,13 +129,53 @@ test('條件句與延長持續時間不計為場效', () => {
   assert.deepEqual(parsePairFieldEffects(grid), []);
 });
 
+test('解析鬥陣（地區＋類別），條件句與延長句不誤抓', () => {
+  const grid = [
+    '<table class="move"><tr><td>首次使出拍組招式時，會讓我方場地變成伽勒爾鬥陣（防禦）。</td></tr></table>',
+    '<table class="passive"><tr><td>登場時場地變成卡洛斯鬥陣（物理）。</td></tr></table>'
+  ].join('');
+  const { formations } = parsePairEffects(grid);
+  assert.deepEqual(formations, [
+    { region: '卡洛斯', category: '物理', ex: false, gridLevel: null },
+    { region: '伽勒爾', category: '防禦', ex: false, gridLevel: null }
+  ]);
+
+  const noise = [
+    '當我方場地為伽勒爾鬥陣（防禦）時，招式威力提升。',
+    '會延長帕底亞鬥陣（特殊）的持續時間。',
+    '我方場地變成任一鬥陣時，會提高能力。',
+    '我方場地變成任一卡洛斯鬥陣時，會發動效果。'
+  ].join('');
+  assert.deepEqual(parsePairEffects(noise).formations, []);
+});
+
+test('物理／特殊鬥陣能解析成獨立類別', () => {
+  const { formations } = parsePairEffects('會讓我方場地變成帕底亞鬥陣（物理／特殊）。');
+  assert.deepEqual(formations, [{ region: '帕底亞', category: '物理／特殊', ex: false, gridLevel: null }]);
+});
+
+test('只在石盤 tile 的場效／鬥陣會標上所需石盤等級，招式被動有的則不標', () => {
+  // 精神場地只出現在等級 5 的石盤 tile；拳頭領域出現在一般被動。
+  const grid = [
+    '<table class="passive"><tr><td>會將領域變成拳頭領域。</td></tr></table>',
+    `<script>json = [[1800101162, '被動', '首次以歌聲形態出招時，\\n會將場地變成精神場地。', 0, 0, 5, 'e1768a', 0, 2, []],
+    [1800101163, '被動', '登場時場地變成關都鬥陣（物理）。', 0, 0, 3, 'e1768a', 0, -2, []]];</script>`
+  ].join('');
+  const { fieldEffects, formations } = parsePairEffects(grid);
+  assert.deepEqual(fieldEffects, [
+    { kind: 'terrain', code: 'psychic', ex: false, gridLevel: 5 },
+    { kind: 'zone', code: '格鬥', ex: false, gridLevel: null }
+  ]);
+  assert.deepEqual(formations, [{ region: '關都', category: '物理', ex: false, gridLevel: 3 }]);
+});
+
 test('日照強烈的狀態正規化為 sun 且四種天氣三種場地都能解析', () => {
   const grid = ['將天氣變成日照強烈的狀態。', '將天氣變成沙暴。', '將天氣變成冰雹。', '將場地變成青草場地。'].join('');
   assert.deepEqual(parsePairFieldEffects(grid), [
-    { kind: 'weather', code: 'sun', ex: false },
-    { kind: 'weather', code: 'sand', ex: false },
-    { kind: 'weather', code: 'hail', ex: false },
-    { kind: 'terrain', code: 'grassy', ex: false }
+    { kind: 'weather', code: 'sun', ex: false, gridLevel: null },
+    { kind: 'weather', code: 'sand', ex: false, gridLevel: null },
+    { kind: 'weather', code: 'hail', ex: false, gridLevel: null },
+    { kind: 'terrain', code: 'grassy', ex: false, gridLevel: null }
   ]);
 });
 

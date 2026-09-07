@@ -1,8 +1,8 @@
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parsePairFieldEffects, parseEventRecords } from './parse-data.mjs';
+import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parsePairEffects, parseEventRecords } from './parse-data.mjs';
 import { getProjectDir } from './project-path.mjs';
 
 const portalDir = resolve(import.meta.dirname, '..');
@@ -33,15 +33,33 @@ export function injectDetailAssets(html, versions = {}) {
   return withStyle.includes('detail-ui.js') ? withStyle : withStyle.replace('</head>', `  <script src="./detail-ui.js${uiQuery}" defer></script>\n</head>`);
 }
 
-async function copySource(sourceDir, distDir, detailVersions) {
-  await cp(sourceDir, resolve(distDir, 'sync-grid'), { recursive: true, filter: (source) => !source.split('/').includes('.git') });
+// 只複製石盤頁面（grids 的 html + autoPanel.js）與 portal 覆蓋檔；其餘圖片由
+// copyReferencedImages 依實際引用挑選，避免把整包 scouts/events 圖庫都搬進 dist。
+async function copyGrids(sourceDir, distDir, detailVersions) {
+  const sourceGrids = resolve(sourceDir, 'grids');
   const targetGrids = resolve(distDir, 'sync-grid', 'grids');
+  await mkdir(targetGrids, { recursive: true });
+  await cp(resolve(sourceGrids, 'autoPanel.js'), resolve(targetGrids, 'autoPanel.js'));
   await cp(resolve(portalDir, 'overrides', 'detail-style.css'), resolve(targetGrids, 'detail-style.css'));
   await cp(resolve(portalDir, 'overrides', 'detail-ui.js'), resolve(targetGrids, 'detail-ui.js'));
-  for (const name of await readdir(targetGrids)) {
+  for (const name of await readdir(sourceGrids)) {
     if (!name.endsWith('.html')) continue;
-    const file = resolve(targetGrids, name);
-    await writeFile(file, injectDetailAssets(await readFile(file, 'utf8'), detailVersions), 'utf8');
+    const html = await readFile(resolve(sourceGrids, name), 'utf8');
+    await writeFile(resolve(targetGrids, name), injectDetailAssets(html, detailVersions), 'utf8');
+  }
+}
+
+// referenced 為相對於 sync-grid 根目錄的圖片路徑（./icons、./events、./scouts）。
+async function copyReferencedImages(sourceDir, distDir, referenced) {
+  for (const rel of referenced) {
+    const clean = rel.replace(/^\.\//, '');
+    const target = resolve(distDir, 'sync-grid', clean);
+    await mkdir(dirname(target), { recursive: true });
+    try {
+      await cp(resolve(sourceDir, clean), target);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
   }
 }
 
@@ -81,25 +99,38 @@ export async function build() {
     readFile(resolve(portalDir, 'overrides', 'detail-style.css'), 'utf8'),
     readFile(resolve(portalDir, 'overrides', 'detail-ui.js'), 'utf8'),
   ]);
-  await copySource(projectDir, distDir, { style: versionOf(detailStyle), ui: versionOf(detailUi) });
+  const detailVersions = { style: versionOf(detailStyle), ui: versionOf(detailUi) };
 
   const iconNames = await readdir(resolve(projectDir, 'icons'));
   const exIcons = new Map(iconNames.filter((name) => name.startsWith('★6ex_')).map((name) => [name.replace(/^★6ex_/, '').replace(/\.png$/i, '').normalize('NFKC'), name]));
   const [readme, eventlog, rankMap] = await Promise.all([readFile(resolve(projectDir, 'README.md'), 'utf8'), readFile(resolve(projectDir, 'eventlog.html'), 'utf8'), loadRankMap()]);
+  const events = parseEventRecords(eventlog);
   const pairs = parsePairRecords(readme);
   const enrichedPairs = await Promise.all(pairs.map(async (pair) => {
     const rank = rankMap.get(pair.name.normalize('NFKC')) ?? null;
     try {
       const grid = await readFile(resolve(projectDir, pair.href.replace(/^\.\//, '')), 'utf8');
       const exImageName = exIcons.get(pair.name.normalize('NFKC'));
-      return { ...pair, rank, attributes: parsePairAttributes(grid), role: parsePairRole(grid), limitedTag: parsePairLimitedTag(grid), fieldEffects: parsePairFieldEffects(grid), exImage: exImageName ? `./icons/${exImageName}` : '', baseTotal: parsePairBaseTotal(grid) };
+      const { fieldEffects, formations } = parsePairEffects(grid);
+      return { ...pair, rank, attributes: parsePairAttributes(grid), role: parsePairRole(grid), limitedTag: parsePairLimitedTag(grid), fieldEffects, formations, exImage: exImageName ? `./icons/${exImageName}` : '', baseTotal: parsePairBaseTotal(grid) };
     } catch {
-      return { ...pair, rank, attributes: [], role: '', limitedTag: '', fieldEffects: [], exImage: '', baseTotal: 0 };
+      return { ...pair, rank, attributes: [], role: '', limitedTag: '', fieldEffects: [], formations: [], exImage: '', baseTotal: 0 };
     }
   }));
   enrichedPairs.sort((left, right) => right.baseTotal - left.baseTotal || left.name.localeCompare(right.name));
-  const data = { pairs: enrichedPairs, events: parseEventRecords(eventlog) };
+  const data = { pairs: enrichedPairs, events };
   await writeFile(resolve(distDir, 'data.js'), `window.SYNC_GRID_DATA = ${JSON.stringify(data)};\n`, 'utf8');
+
+  await copyGrids(projectDir, distDir, detailVersions);
+  const referencedImages = new Set();
+  for (const pair of enrichedPairs) {
+    if (pair.image) referencedImages.add(pair.image);
+    if (pair.exImage) referencedImages.add(pair.exImage);
+  }
+  for (const event of events) {
+    if (event.image) referencedImages.add(event.image);
+  }
+  await copyReferencedImages(projectDir, distDir, referencedImages);
   await bustAssetCache(distDir);
   const ranked = enrichedPairs.filter((pair) => pair.rank != null).length;
   console.log(`已生成 dist：${data.pairs.length} 個拍組（含田雞榜等級 ${ranked}）、${data.events.length} 個活動`);

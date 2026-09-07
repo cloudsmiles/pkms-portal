@@ -6,7 +6,7 @@ export function getPageItems(currentPage, totalPages) {
 }
 
 export function getViewFilters(tab) {
-  return tab === 'pairs' ? ['category', 'attribute', 'role', 'rank', 'fieldEffect'] : ['date', 'status'];
+  return tab === 'pairs' ? ['category', 'attribute', 'role', 'rank', 'fieldEffect', 'formation'] : ['date', 'status'];
 }
 
 // 田雞榜等級：1~15 的梯子。四個球級（新手/精靈球/超級球/高級球）各分 1<2<3 三檔，
@@ -146,8 +146,42 @@ export function matchesFieldEffectSelection(pair, values) {
   });
 }
 
+// 鬥陣：卡片標籤顯示完整名稱（地區＋類別），篩選只依類別（物理＝物攻、特殊＝特攻、防禦）。
+export const formationCategories = [
+  { value: '物理', label: '物攻' },
+  { value: '特殊', label: '特攻' },
+  { value: '防禦', label: '防禦' },
+];
+
+export function getFormationCategories() {
+  return formationCategories;
+}
+
+export function getFormationLabel(region, category) {
+  return `${region}鬥陣（${category}）`;
+}
+
+// 鬥陣晶片配色用的類別 tone；「物理／特殊」同時屬物攻與特攻。
+export function formationTone(category) {
+  if (category === '物理') return 'physical';
+  if (category === '特殊') return 'special';
+  if (category === '防禦') return 'defense';
+  return 'mixed';
+}
+
+function formationCategoryMatches(selected, category) {
+  if (selected === category) return true;
+  return category === '物理／特殊' && (selected === '物理' || selected === '特殊');
+}
+
+// 多選組合：選物攻就命中所有物理類（含物理／特殊）鬥陣，依此類推；空陣列＝不篩選。
+export function matchesFormationSelection(pair, values) {
+  if (!values || values.length === 0) return true;
+  return (pair.formations ?? []).some((form) => values.some((selected) => formationCategoryMatches(selected, form.category)));
+}
+
 export function getActiveFilterCount(state) {
-  return ['query', 'category', 'attribute', 'role', 'rank', 'limitedTag', 'fieldEffect', 'date', 'status']
+  return ['query', 'category', 'attribute', 'role', 'rank', 'limitedTag', 'fieldEffect', 'formation', 'date', 'status']
     .filter((key) => {
       const value = state[key];
       return Array.isArray(value) ? value.length > 0 : Boolean(value) && value !== 'all';
@@ -162,6 +196,7 @@ export function getFilterOptionLabel(filter, value) {
     const separator = value.indexOf(':');
     return getFieldEffectLabel(value.slice(0, separator), value.slice(separator + 1));
   }
+  if (filter === 'formation') return formationCategories.find((category) => category.value === value)?.label ?? value;
   if (filter === 'rank') return getRankTierLabel(Number(value));
   if (filter === 'role') return value === '物理攻擊型' ? '物攻' : value === '特殊攻擊型' ? '特攻' : value;
   if (filter === 'sort') return {

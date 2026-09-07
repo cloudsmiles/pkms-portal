@@ -184,6 +184,17 @@ body { font-size: var(--portal-body-size); }
 .field-terrain-psychic { color: #4a1238; background: #e88fd0; }
 .pair-badges .field-chip.is-ex { border-color: #ffd83d; box-shadow: 0 0 0 1px rgba(255, 216, 61, .5), 0 1px 0 rgba(0, 0, 0, .16); }
 
+/* 鬥陣晶片：顯示完整「地區鬥陣（類別）」，顏色依類別（物攻／特攻／防禦）區分。 */
+.pair-badges .formation-chip { position: relative; display: inline-block; padding: 2px 6px; border: 1px solid transparent; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1.45; white-space: nowrap; color: #fff; box-shadow: 0 1px 0 rgba(0, 0, 0, .16); }
+.formation-physical { background: #c0392b; }
+.formation-special { background: #2f6fb0; }
+.formation-defense { color: #10352f; background: #5fe0bd; }
+.formation-mixed { background: #7d54a8; }
+
+/* 石盤等級徽章：場效／鬥陣只能靠開石盤取得時，於右上角標註所需等級（僅 >1 顯示）。 */
+.pair-badges .field-chip, .pair-badges .formation-chip { position: relative; }
+.chip-lv { position: absolute; top: -7px; right: -7px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px; background: #ffd83d; color: #4a3300; border: 1px solid #1b2a2c; font-size: 9px; font-weight: 800; font-style: normal; line-height: 12px; text-align: center; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+
 /* 場效篩選面板：與屬性篩選同款式的三欄網格，並依天氣／場地／領域分組。 */
 .fieldeffect-select .select-menu { min-width: 300px; display: grid; grid-template-columns: repeat(3, minmax(78px, 1fr)); gap: 5px; padding: 10px; }
 .fieldeffect-select .select-menu[hidden] { display: none; }

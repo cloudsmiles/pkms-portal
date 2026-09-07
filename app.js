@@ -1,10 +1,10 @@
-import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, getPairRoleLabel, matchesPairRole, pairAttributes, sortPairs, getAttributeOptions, getFieldEffectOptions, getFieldEffectLabel, matchesFieldEffectSelection, getActiveFilterCount, getFilterOptionLabel, isFilterActive, rankLevels, rankFamily, getRankTierLabel } from './ui-helpers.mjs';
+import { getPageItems, getViewFilters, getPairCategories, getPairRoles, getPairLimitedTags, getPairRoleLabel, matchesPairRole, pairAttributes, sortPairs, getAttributeOptions, getFieldEffectOptions, getFieldEffectLabel, matchesFieldEffectSelection, getFormationCategories, getFormationLabel, formationTone, matchesFormationSelection, getActiveFilterCount, getFilterOptionLabel, isFilterActive, rankLevels, rankFamily, getRankTierLabel } from './ui-helpers.mjs';
 import { sourcePath } from './web-path.mjs';
 
 (() => {
   const data = window.SYNC_GRID_DATA || { pairs: [], events: [] };
   // 多選篩選以陣列保存選中值（空陣列＝全部）；其餘維持單值 'all'。
-  const state = { tab: 'pairs', query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], date: 'all', status: 'all', sort: 'base-desc', page: 1, pageSize: 12 };
+  const state = { tab: 'pairs', query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], formation: [], date: 'all', status: 'all', sort: 'base-desc', page: 1, pageSize: 12 };
   const labels = { active: '進行中', upcoming: '即將開始', ended: '已結束' };
   const $ = (selector) => document.querySelector(selector);
   const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
@@ -12,11 +12,11 @@ import { sourcePath } from './web-path.mjs';
   const fieldEffectToneClass = (kind, code) => (kind === 'zone' ? attributeClass(code) : `field-${kind}-${code}`);
   const formatDate = (value) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric' }).format(new Date(value));
   const eventStatus = (event) => { const now = new Date(); const start = new Date(event.start); const end = new Date(event.end); return now < start ? 'upcoming' : now > end ? 'ended' : 'active'; };
-  const filterLabels = { query: '搜尋', category: '分類', attribute: '屬性', role: '攻擊方式', rank: '田雞榜等級', limitedTag: '限定標籤', fieldEffect: '場效', date: '日期', status: '狀態' };
-  const filterElements = { category: 'category-filter', role: 'role-filter', rank: 'rank-filter', limitedTag: 'limited-tag-filter', fieldEffect: 'field-effect-filter', date: 'date-filter', status: 'status-filter' };
+  const filterLabels = { query: '搜尋', category: '分類', attribute: '屬性', role: '攻擊方式', rank: '田雞榜等級', limitedTag: '限定標籤', fieldEffect: '場效', formation: '鬥陣', date: '日期', status: '狀態' };
+  const filterElements = { category: 'category-filter', role: 'role-filter', rank: 'rank-filter', limitedTag: 'limited-tag-filter', fieldEffect: 'field-effect-filter', formation: 'formation-filter', date: 'date-filter', status: 'status-filter' };
   // data-filter 與 state 鍵名的對應（僅限定標籤不同）；這些篩選為多選。
   const FILTER_STATE_KEY = { limited: 'limitedTag' };
-  const MULTI_FILTER_KEYS = new Set(['category', 'attribute', 'rank', 'limitedTag', 'fieldEffect']);
+  const MULTI_FILTER_KEYS = new Set(['category', 'attribute', 'rank', 'limitedTag', 'fieldEffect', 'formation']);
   const stateKeyOf = (filter) => FILTER_STATE_KEY[filter] ?? filter;
 
   function filteredRecords() {
@@ -31,9 +31,10 @@ import { sourcePath } from './web-path.mjs';
       const matchesRank = state.tab === 'events' || state.rank.length === 0 || state.rank.includes(String(record.rank));
       const matchesLimitedTag = state.tab === 'events' || state.limitedTag.length === 0 || state.limitedTag.includes(record.limitedTag);
       const hasFieldEffect = state.tab === 'events' || matchesFieldEffectSelection(record, state.fieldEffect);
+      const hasFormation = state.tab === 'events' || matchesFormationSelection(record, state.formation);
       const matchesDate = state.tab === 'pairs' || state.date === 'all' || record.start.slice(0, 10) === state.date;
       const matchesStatus = state.tab === 'pairs' || state.status === 'all' || eventStatus(record) === state.status;
-      return matchesQuery && matchesCategory && matchesAttribute && matchesRole && matchesRank && matchesLimitedTag && hasFieldEffect && matchesDate && matchesStatus;
+      return matchesQuery && matchesCategory && matchesAttribute && matchesRole && matchesRank && matchesLimitedTag && hasFieldEffect && hasFormation && matchesDate && matchesStatus;
     });
     return state.tab === 'pairs' ? sortPairs(filtered, state.sort) : filtered;
   }
@@ -44,13 +45,18 @@ import { sourcePath } from './web-path.mjs';
 
   const exToggleMarkup = (record) => `<button class="ex-toggle" type="button" data-normal-image="${sourcePath(record.image)}" data-ex-image="${sourcePath(record.exImage)}" ${record.exImage ? '' : 'disabled'} aria-label="${record.exImage ? '目前為普通頭像，點擊切換到★6 EX' : '沒有★6 EX頭像'}" title="${record.exImage ? '目前為普通頭像，點擊切換到★6 EX' : '沒有★6 EX頭像'}">普通</button>`;
 
+  // 場效／鬥陣若只能靠開石盤取得（gridLevel>1），於晶片右上角標註所需石盤等級。
+  const gridLevelBadge = (level) => (Number(level) > 1 ? `<i class="chip-lv" title="需石盤等級 ${level}">${level}</i>` : '');
+
   const fieldEffectChip = (effect) => {
     const tone = fieldEffectToneClass(effect.kind, effect.code);
-    return `<span class="field-chip ${tone}${effect.ex ? ' is-ex' : ''}">${effect.ex ? 'EX' : ''}${escapeHtml(getFieldEffectLabel(effect.kind, effect.code))}</span>`;
+    return `<span class="field-chip ${tone}${effect.ex ? ' is-ex' : ''}">${effect.ex ? 'EX' : ''}${escapeHtml(getFieldEffectLabel(effect.kind, effect.code))}${gridLevelBadge(effect.gridLevel)}</span>`;
   };
 
+  const formationChip = (form) => `<span class="formation-chip formation-${formationTone(form.category)}">${escapeHtml(getFormationLabel(form.region, form.category))}${gridLevelBadge(form.gridLevel)}</span>`;
+
   function renderCard(record) {
-    if (state.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}"><div class="pair-art">${imageMarkup(record.image, record.name)}${exToggleMarkup(record)}</div><div class="pair-meta"><span class="pair-topline">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}${record.rank != null ? `<span class="pair-rank rank-fam-${rankFamily(record.rank)}" title="田雞榜等級">${getRankTierLabel(record.rank)}</span>` : ''}</span><span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${record.role === '物理攻擊型' ? 'physical' : 'special'}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}${(record.fieldEffects ?? []).map(fieldEffectChip).join('')}</div></div></a></article>`;
+    if (state.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}"><div class="pair-art">${imageMarkup(record.image, record.name)}${exToggleMarkup(record)}</div><div class="pair-meta"><span class="pair-topline">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}${record.rank != null ? `<span class="pair-rank rank-fam-${rankFamily(record.rank)}" title="田雞榜等級">${getRankTierLabel(record.rank)}</span>` : ''}</span><span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${record.role === '物理攻擊型' ? 'physical' : 'special'}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}${(record.fieldEffects ?? []).map(fieldEffectChip).join('')}${(record.formations ?? []).map(formationChip).join('')}</div></div></a></article>`;
     const status = eventStatus(record);
     return `<article class="event-card"><div class="event-visual">${record.image ? imageMarkup(record.image, record.title) : '<div class="event-art-empty" aria-hidden="true"></div>'}</div><div class="event-info"><div class="event-dates">${formatDate(record.start)} — ${formatDate(record.end)}<span class="event-status ${status}">${labels[status]}</span></div><h3 class="event-title">${escapeHtml(record.title)}</h3><p class="event-desc">${escapeHtml(record.description || '暫無活動說明')}</p></div></article>`;
   }
@@ -142,7 +148,7 @@ import { sourcePath } from './web-path.mjs';
       chips.push(`<button class="active-filter" type="button" data-clear-filter="${key}" data-clear-value="${escapeHtml(value)}">${filterLabels[key]}：${escapeHtml(label)}<span aria-hidden="true">×</span></button>`);
     };
     if (state.query.trim()) push('query', state.query, `「${state.query.trim()}」`);
-    for (const key of ['category', 'attribute', 'role', 'rank', 'limitedTag', 'fieldEffect', 'date', 'status']) {
+    for (const key of ['category', 'attribute', 'role', 'rank', 'limitedTag', 'fieldEffect', 'formation', 'date', 'status']) {
       const value = state[key];
       if (Array.isArray(value)) value.forEach((item) => push(key, item, getFilterOptionLabel(key, item)));
       else if (value && value !== 'all') push(key, value, getFilterOptionLabel(key, value));
@@ -199,7 +205,7 @@ import { sourcePath } from './web-path.mjs';
   $('#page-size').addEventListener('change', (event) => { state.pageSize = Number(event.target.value); state.page = 1; render(); });
   $('#sort-filter').addEventListener('change', (event) => { state.sort = event.target.value; state.page = 1; render(); });
   $('#clear-filters').addEventListener('click', () => {
-    Object.assign(state, { query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], date: 'all', status: 'all', sort: 'base-desc', page: 1 });
+    Object.assign(state, { query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], formation: [], date: 'all', status: 'all', sort: 'base-desc', page: 1 });
     $('#search').value = '';
     ['role-filter', 'date-filter', 'status-filter', 'sort-filter'].forEach((id) => { $(`#${id}`).value = id === 'sort-filter' ? 'base-desc' : 'all'; });
     render();
@@ -299,6 +305,7 @@ import { sourcePath } from './web-path.mjs';
         .map((effect) => `<option value="${effect.kind}:${escapeHtml(effect.code)}">${escapeHtml(effect.label)}</option>`).join('');
       return `<optgroup label="${fieldGroupLabels[kind]}">${options}</optgroup>`;
     }).join('');
+  $('#formation-filter').innerHTML = ['<option value="all">全部</option>', ...getFormationCategories().map((category) => `<option value="${escapeHtml(category.value)}">${escapeHtml(category.label)}</option>`)].join('');
   $('#date-filter').innerHTML = ['<option value="all">全部</option>', ...[...new Set(data.events.map((event) => event.start.slice(0, 10)))].map((date) => `<option value="${date}">${date.replaceAll('-', '/')}</option>`)].join('');
   initializeCustomSelects();
   render();
