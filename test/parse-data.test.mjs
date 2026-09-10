@@ -19,9 +19,10 @@ test('详情页覆盖资源注入可重复执行', () => {
   assert.equal(injectDetailAssets(injected), injected);
 });
 
-test('详情页返回链接会回到门户主页', async () => {
+test('详情页返回链接默认回主页，并可用 back 参数保留清单查询', async () => {
   const script = await readFile(new URL('../overrides/detail-ui.js', import.meta.url), 'utf8');
-  assert.match(script, /back\.href\s*=\s*['\"]\.\.\/\.\.\/index\.html['\"]/);
+  assert.match(script, /get\('back'\)/);
+  assert.match(script, /return\s+['"]\.\.\/\.\.\/index\.html['"]/);
 });
 
 test('解析拍組連結時保留分類、名稱、圖片與網址', () => {

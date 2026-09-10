@@ -3,9 +3,22 @@
   const grid = document.querySelector('.grid');
   if (!content) return;
 
+  // 返回入口頁時保留清單的查詢狀態：優先用卡片連結帶的 back，其次用同站 referrer。
+  function resolveBackHref() {
+    const from = new URLSearchParams(location.search).get('back');
+    if (from && from.startsWith('?')) return `../../index.html${from}`;
+    try {
+      const ref = new URL(document.referrer);
+      if (ref.origin === location.origin && ref.pathname.endsWith('/index.html')) {
+        return `../../index.html${ref.search}`;
+      }
+    } catch { /* 無 referrer 時回預設 */ }
+    return '../../index.html';
+  }
+
   const back = document.createElement('a');
   back.className = 'detail-back';
-  back.href = '../../index.html';
+  back.href = resolveBackHref();
   back.textContent = '返回拍組圖鑑';
   document.body.insertBefore(back, document.body.firstElementChild);
 
