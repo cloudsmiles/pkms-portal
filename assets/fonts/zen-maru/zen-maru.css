@@ -1,0 +1,23 @@
+/* 由 scripts/fetch-font.mjs 自動產生，請勿手動編輯。
+   只含站內用字切片；新增大量罕用字後重跑 npm run build && npm run fonts。 */
+@font-face {
+  font-family: 'Zen Maru Gothic';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./zen-maru-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Zen Maru Gothic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./zen-maru-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Zen Maru Gothic';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('./zen-maru-900.woff2') format('woff2');
+}
