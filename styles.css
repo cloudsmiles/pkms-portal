@@ -8,16 +8,16 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .page-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
 .hero { position: relative; isolation: isolate; overflow: hidden; min-height: 240px; border-bottom: 2px solid var(--mint-soft); }
 .hero-inner { width: min(1180px, calc(100% - (var(--portal-page-padding) * 2))); margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center; min-height: 240px; }
-.hero::before { content: ''; position: absolute; inset: -30px; z-index: -2; background: url('./assets/salina.jpeg') center/cover no-repeat; filter: blur(26px) saturate(1.08); opacity: .5; -webkit-mask-image: radial-gradient(120% 100% at 50% 40%, #000 55%, transparent 85%), linear-gradient(180deg, #000 50%, transparent 90%); -webkit-mask-composite: source-in; mask-image: radial-gradient(120% 100% at 50% 40%, #000 55%, transparent 85%), linear-gradient(180deg, #000 50%, transparent 90%); mask-composite: intersect; }
-.hero::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(244,250,247,.05) 35%, rgba(244,250,247,.78) 82%, var(--bg) 100%), url('./assets/salina.jpeg') 60% 40%/contain no-repeat; -webkit-mask-image: radial-gradient(70% 84% at 60% 40%, #000 45%, rgba(0,0,0,.5) 63%, transparent 82%); mask-image: radial-gradient(70% 84% at 60% 40%, #000 45%, rgba(0,0,0,.5) 63%,  transparent 82%); }
+.hero::before { content: ''; position: absolute; inset: -30px; z-index: -2; background: url('./assets/salina.jpeg') 50% 30%/cover no-repeat; filter: blur(26px) saturate(1.08); opacity: .6; -webkit-mask-image: linear-gradient(180deg, transparent 42%, rgba(0,0,0,.6) 68%, #000 90%, transparent 100%); mask-image: linear-gradient(180deg, transparent 42%, rgba(0,0,0,.6) 68%, #000 90%, transparent 100%); }
+.hero::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(244,250,247,.08) 30%, rgba(244,250,247,.6) 74%, var(--bg) 98%), url('./assets/salina.jpeg') 50% 28%/cover no-repeat; -webkit-mask-image: linear-gradient(180deg, #000 50%, rgba(0,0,0,.8) 70%, transparent 97%); mask-image: linear-gradient(180deg, #000 50%, rgba(0,0,0,.8) 70%, transparent 97%); }
 .hero-inner > * { position: relative; z-index: 1; }
 .hero-mark { width: 74px; height: 74px; display: grid; place-items: center; border: 0; border-radius: 18px; color: #fff; background: linear-gradient(135deg, #65e0bd, #2fae86); font: 900 23px 'Zen Maru Gothic', 'PingFang TC', sans-serif; letter-spacing: -1px; transform: rotate(-6deg); box-shadow: var(--shadow-control); }
 .hero-mark span { color: #fff3d6; }
-.eyebrow { margin: 0 0 10px; color: var(--mint-ink); font: 700 11px 'Zen Maru Gothic', 'PingFang TC', sans-serif; letter-spacing: .14em; }
+.eyebrow { margin: 0 0 10px; color: var(--mint-ink); font: 700 11px 'Zen Maru Gothic', 'PingFang TC', sans-serif; letter-spacing: .14em; text-shadow: 0 1px 8px rgba(244,250,247,.9); }
 h1, h2 { margin: 0; letter-spacing: 0; line-height: 1.15; font-family: 'Zen Maru Gothic', 'PingFang TC', sans-serif; color: var(--ink); }
 h1 { font-size: clamp(34px, 5.4vw, 60px); font-weight: 900; text-shadow: 0 2px 0 rgba(255,255,255,.7); }
 h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
-.hero-copy { color: var(--muted); margin: 16px 0 0; font-size: 15px; }
+.hero-copy { color: var(--muted); margin: 16px 0 0; font-size: 15px; text-shadow: 0 1px 10px rgba(244,250,247,.95), 0 0 3px rgba(244,250,247,.8); }
 .hero-copy::after { content: ' ✿'; color: var(--mint); }
 .hero-note { align-self: start; margin-top: 35px; padding: 7px 13px; border: 1.5px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.85); color: var(--muted); font-size: 12px; white-space: nowrap; }
 .live-dot { display: inline-block; width: 7px; height: 7px; background: var(--mint); border-radius: 50%; margin-right: 7px; }
