@@ -1,25 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
 
-:root { --ink: #f3f7f6; --muted: #9baaa9; --bg: #10191c; --panel: #172326; --line: #2b3b3d; --mint: #65e0bd; --orange: #ffad6b; --danger: #ff7c72; }
+:root { --ink: #23302d; --muted: #6d857e; --bg: #f4faf7; --panel: #ffffff; --line: #dce9e3; --mint: #2fae86; --mint-ink: #176b52; --mint-soft: #d9f5ea; --mint-chip: #e7f9f2; --orange: #d98a3c; --orange-soft: #ffe6cc; --danger: #e25c54; --shadow-card: 0 6px 16px rgba(31,74,61,.10); --shadow-control: 0 3px 8px rgba(31,74,61,.06); --shadow-menu: 0 16px 32px rgba(31,74,61,.16); }
 * { box-sizing: border-box; }
 body { margin: 0; color: var(--ink); background-color: var(--bg); font-family: 'Noto Sans TC', 'PingFang TC', sans-serif; }
-/* 背景照片：底層同圖放大並高斯模糊填滿視窗，表層清晰圖用徑向遮罩讓邊緣漸隱、融進模糊層；暗化濾鏡保住文字對比。*/
-body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url('./assets/salina.jpeg') center/cover no-repeat; filter: blur(30px) brightness(.5) saturate(1.05); transform: scale(1.12); }
-body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(16,25,28,.52), rgba(16,25,28,.72)), url('./assets/salina.jpeg') center/contain no-repeat; -webkit-mask-image: radial-gradient(115% 100% at 50% 42%, #000 35%, rgba(0,0,0,.55) 60%, transparent 80%); mask-image: radial-gradient(115% 100% at 50% 42%, #000 35%, rgba(0,0,0,.55) 60%, transparent 80%); }
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 .page-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
-.hero { display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center; min-height: 260px; border-bottom: 1px solid var(--line); }
-.hero-mark { width: 74px; height: 74px; display: grid; place-items: center; border: 1px solid var(--mint); color: var(--mint); font: 700 23px 'Space Grotesk'; letter-spacing: -2px; transform: rotate(-8deg); }
-.hero-mark span { color: var(--orange); }
-.eyebrow { margin: 0 0 10px; color: var(--mint); font: 700 11px 'Space Grotesk'; letter-spacing: .18em; }
-h1, h2 { margin: 0; letter-spacing: -.06em; line-height: 1; }
-h1 { font-size: clamp(38px, 6vw, 72px); font-weight: 900; }
-h2 { font-size: clamp(28px, 4vw, 42px); }
-.hero-copy { color: var(--muted); margin: 18px 0 0; font-size: 15px; }
-.hero-note { color: var(--muted); font-size: 12px; align-self: start; margin-top: 35px; }.live-dot { display: inline-block; width: 7px; height: 7px; background: var(--mint); border-radius: 50%; margin-right: 7px; box-shadow: 0 0 12px var(--mint); }
-.tabs { display: flex; gap: 28px; border-bottom: 1px solid var(--line); margin-top: 42px; }
-.tab { color: var(--muted); background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 0 0 16px; cursor: pointer; font-weight: 700; }.tab.is-active { color: var(--ink); border-color: var(--mint); }.tab span { color: var(--mint); font: 700 12px 'Space Grotesk'; margin-left: 6px; }
+.hero { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center; min-height: 240px; border-bottom: 2px solid var(--mint-soft); }
+.hero::before { content: ''; position: absolute; inset: -30px; z-index: -2; background: url('./assets/salina.jpeg') center/cover no-repeat; filter: blur(26px) saturate(1.08); opacity: .5; -webkit-mask-image: radial-gradient(120% 100% at 50% 40%, #000 55%, transparent 85%), linear-gradient(180deg, #000 50%, transparent 90%); -webkit-mask-composite: source-in; mask-image: radial-gradient(120% 100% at 50% 40%, #000 55%, transparent 85%), linear-gradient(180deg, #000 50%, transparent 90%); mask-composite: intersect; }
+.hero::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(244,250,247,.05) 35%, rgba(244,250,247,.78) 82%, var(--bg) 100%), url('./assets/salina.jpeg') 60% 40%/contain no-repeat; -webkit-mask-image: radial-gradient(70% 84% at 60% 40%, #000 45%, rgba(0,0,0,.5) 63%, transparent 82%); mask-image: radial-gradient(70% 84% at 60% 40%, #000 45%, rgba(0,0,0,.5) 63%,  transparent 82%); }
+.hero > * { position: relative; z-index: 1; }
+.hero-mark { width: 74px; height: 74px; display: grid; place-items: center; border: 0; border-radius: 18px; color: #fff; background: linear-gradient(135deg, #65e0bd, #2fae86); font: 900 23px 'Zen Maru Gothic', 'PingFang TC', sans-serif; letter-spacing: -1px; transform: rotate(-6deg); box-shadow: var(--shadow-control); }
+.hero-mark span { color: #fff3d6; }
+.eyebrow { margin: 0 0 10px; color: var(--mint-ink); font: 700 11px 'Zen Maru Gothic', 'PingFang TC', sans-serif; letter-spacing: .14em; }
+h1, h2 { margin: 0; letter-spacing: 0; line-height: 1.15; font-family: 'Zen Maru Gothic', 'PingFang TC', sans-serif; color: var(--ink); }
+h1 { font-size: clamp(34px, 5.4vw, 60px); font-weight: 900; text-shadow: 0 2px 0 rgba(255,255,255,.7); }
+h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
+.hero-copy { color: var(--muted); margin: 16px 0 0; font-size: 15px; }
+.hero-copy::after { content: ' ✿'; color: var(--mint); }
+.hero-note { align-self: start; margin-top: 35px; padding: 7px 13px; border: 1.5px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.85); color: var(--muted); font-size: 12px; white-space: nowrap; }
+.live-dot { display: inline-block; width: 7px; height: 7px; background: var(--mint); border-radius: 50%; margin-right: 7px; }
+.tabs { display: flex; gap: 28px; border-bottom: 1px solid var(--line); margin-top: 34px; }
+.tab { color: var(--muted); background: transparent; border: 0; border-bottom: 3px solid transparent; padding: 0 4px 14px; cursor: pointer; font-family: 'Zen Maru Gothic', 'PingFang TC', sans-serif; font-weight: 700; }.tab.is-active { color: var(--ink); border-color: var(--mint); }.tab span { color: var(--mint-ink); background: var(--mint-soft); border-radius: 999px; padding: 1px 8px; font: 700 11px 'Zen Maru Gothic', 'PingFang TC', sans-serif; margin-left: 6px; }
 .toolbar { display: flex; gap: 10px; margin: 26px 0 48px; flex-wrap: wrap; }.search-box { flex: 1 1 290px; min-width: 220px; display: flex; gap: 10px; align-items: center; color: var(--mint); border: 1px solid var(--line); background: rgba(23,35,38,.82); padding: 0 14px; height: 48px; }.search-box span { font-size: 27px; line-height: 0; transform: rotate(-15deg); }.search-box input { width: 100%; border: 0; outline: 0; color: var(--ink); background: transparent; font-size: 14px; }.search-box:focus-within { border-color: var(--mint); box-shadow: 0 0 0 3px rgba(101,224,189,.1); }
 .select-box { display: flex; align-items: center; gap: 9px; height: 48px; border: 1px solid var(--line); background: rgba(23,35,38,.82); padding: 0 11px; color: var(--muted); font-size: 12px; }.select-box[hidden] { display: none; }.select-box select { appearance: none; color: var(--ink); background: transparent; border: 0; outline: 0; padding-right: 16px; cursor: pointer; font-size: 13px; }.select-box select option { background: var(--panel); }
 .select-box strong { color: var(--ink); font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
