@@ -117,6 +117,24 @@ test('ＥＸ強化版場效標記為 ex，且與普通版去重後保留 ex', ()
   assert.deepEqual(parsePairFieldEffects(both), [{ kind: 'zone', code: '飛行', ex: true, gridLevel: null }]);
 });
 
+test('超覺醒被動提供的場效標記 sa，與一般來源共存時仍保留；一般被動不標', () => {
+  const saTable = '<table class="passive" style="background-color:#4ce1f780"><tr><td>超覺醒被動技能：測試被動<br>首次上場時，<br>會將天氣變成下雨。</td></tr></table>';
+  assert.deepEqual(parsePairFieldEffects(saTable), [
+    { kind: 'weather', code: 'rain', ex: false, gridLevel: null, sa: true }
+  ]);
+
+  const normalPassive = '<table class="passive"><tr><td>登場時，會將天氣變成沙暴。</td></tr></table>';
+  assert.deepEqual(parsePairFieldEffects(normalPassive), [
+    { kind: 'weather', code: 'sand', ex: false, gridLevel: null }
+  ]);
+
+  const mixed = saTable + '<table class="move"><tr><td>出招時，會將領域變成惡顏領域。</td></tr></table>';
+  assert.deepEqual(parsePairFieldEffects(mixed), [
+    { kind: 'weather', code: 'rain', ex: false, gridLevel: null, sa: true },
+    { kind: 'zone', code: '惡', ex: false, gridLevel: null }
+  ]);
+});
+
 test('條件句與延長持續時間不計為場效', () => {
   const grid = [
     '將天氣變成日照強烈時，會提高火屬性招式的威力。',

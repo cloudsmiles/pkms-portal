@@ -191,9 +191,9 @@ body { font-size: var(--portal-body-size); }
 .formation-defense { color: #10352f; background: #5fe0bd; }
 .formation-mixed { background: #7d54a8; }
 
-/* 石盤等級徽章：場效／鬥陣只能靠開石盤取得時，於右上角標註所需等級（僅 >1 顯示）。 */
+/* 右上角徽章：石盤等級數字（僅 >1 顯示）與超覺醒「超」標記共用同款黃底深字樣式。 */
 .pair-badges .field-chip, .pair-badges .formation-chip { position: relative; }
-.chip-lv { position: absolute; top: -7px; right: -7px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px; background: #ffd83d; color: #4a3300; border: 1px solid #1b2a2c; font-size: 9px; font-weight: 800; font-style: normal; line-height: 12px; text-align: center; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+.chip-lv, .chip-sa { position: absolute; top: -7px; right: -7px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px; background: #ffd83d; color: #4a3300; border: 1px solid #1b2a2c; font-size: 9px; font-weight: 800; font-style: normal; line-height: 12px; text-align: center; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
 
 /* 場效篩選面板：與屬性篩選同款式的三欄網格，並依天氣／場地／領域分組。 */
 .fieldeffect-select .select-menu { min-width: 300px; display: grid; grid-template-columns: repeat(3, minmax(78px, 1fr)); gap: 5px; padding: 10px; }

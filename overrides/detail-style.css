@@ -170,6 +170,15 @@ body > div.text {
   background: #e7f5f1;
 }
 
+.tab li a.is-active {
+  color: #fff;
+  border-color: var(--detail-accent-dark);
+  background: var(--detail-accent);
+  box-shadow: 0 4px 12px rgba(22, 125, 115, .28);
+}
+
+.tab li a.is-active:hover { color: #fff; background: var(--detail-accent-dark); }
+
 .content {
   margin-top: 18px;
   border: 0;
@@ -205,6 +214,56 @@ th { color: #fff; background: var(--detail-accent-dark); font-weight: 700; }
 .content > div > table:first-child tr:nth-child(3) td { color: var(--detail-accent-dark); background: #e7f5f1 !important; font-size: 16px; }
 .move td:first-child { width: 22%; color: var(--detail-muted); font-weight: 700; }
 .move td:nth-child(2) { font-weight: 500; }
+
+/* 招式類型外框：拍組＝屬性深色、極巨化＝深紅、同步＝屬性色融合炫彩。 */
+.move-frame { margin: 0 0 14px; padding: 2.5px; border-radius: 11px; }
+.move-frame > table {
+  margin: 0;
+  border: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--move-color, #fff) 50%, var(--detail-panel));
+}
+.frame-sync {
+  background: linear-gradient(150deg,
+    color-mix(in srgb, var(--move-color, #414a5c) 55%, #141823),
+    color-mix(in srgb, var(--move-color, #1d212b) 35%, #141823));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--move-color, #141823) 30%, transparent);
+}
+.frame-max { background: linear-gradient(150deg, #a3162f, #6d0d1f); box-shadow: 0 8px 20px rgba(122, 16, 32, .25); }
+.frame-buddy {
+  background: linear-gradient(120deg, var(--move-color, #ff9a4d), #ff5d6c 16%, #ffb24d 32%, #ffe34d 48%, #54d97a 64%, #3dbef5 80%, #9b6bff);
+  box-shadow: 0 8px 22px rgba(120, 90, 220, .22);
+}
+
+/* 潛能（餅乾）：與青藍色被動區分的暖金底色。 */
+table.passive-cookie {
+  border-color: #e6cf92;
+  background: linear-gradient(180deg, #fdf5e2, #f7e9c6);
+}
+
+/* 超覺醒被動：彩虹框 + 極淡炫彩底，標題字樣用彩虹膠囊。 */
+table.passive-super {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(120deg, #fff6f7, #fff8ee 24%, #fdfbe9 40%, #f0fbf2 56%, #eef8fd 72%, #f5f0ff) padding-box,
+    linear-gradient(120deg, #ff5d6c, #ffb24d, #ffe34d, #54d97a, #3dbef5, #9b6bff, #ff6bd6) border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 8px 22px rgba(150, 99, 220, .16);
+}
+
+.sa-badge {
+  display: inline-block;
+  margin: 0 8px 4px 0;
+  padding: 2px 11px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: .92em;
+  font-weight: 800;
+  letter-spacing: .04em;
+  background: linear-gradient(120deg, #ff5d6c, #ff9a4d, #ffd23d, #4ecf7a, #38b6f0, #9b6bff);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .32);
+  box-shadow: 0 2px 8px rgba(155, 107, 255, .35);
+}
 .team { table-layout: fixed; }
 .team td { width: 33%; text-align: center; font-size: 12px; font-weight: 700; line-height: 1.5; vertical-align: middle; overflow-wrap: anywhere; word-break: break-all; white-space: normal; }
 .explore td { text-align: center; font-weight: 700; white-space: normal; overflow-wrap: anywhere; }

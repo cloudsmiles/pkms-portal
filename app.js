@@ -50,7 +50,7 @@ import { sourcePath } from './web-path.mjs';
 
   const fieldEffectChip = (effect) => {
     const tone = fieldEffectToneClass(effect.kind, effect.code);
-    return `<span class="field-chip ${tone}${effect.ex ? ' is-ex' : ''}">${effect.ex ? 'EX' : ''}${escapeHtml(getFieldEffectLabel(effect.kind, effect.code))}${gridLevelBadge(effect.gridLevel)}</span>`;
+    return `<span class="field-chip ${tone}${effect.ex ? ' is-ex' : ''}${effect.sa ? ' is-sa' : ''}">${effect.ex ? 'EX' : ''}${escapeHtml(getFieldEffectLabel(effect.kind, effect.code))}${gridLevelBadge(effect.gridLevel)}${effect.sa ? '<i class="chip-sa" title="來自超覺醒被動技能">超</i>' : ''}</span>`;
   };
 
   const formationChip = (form) => `<span class="formation-chip formation-${formationTone(form.category)}">${escapeHtml(getFormationLabel(form.region, form.category))}${gridLevelBadge(form.gridLevel)}</span>`;

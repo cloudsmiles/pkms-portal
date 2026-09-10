@@ -109,26 +109,32 @@ function gridTiles(gridText) {
 
 // lv 為 null 代表來自招式／被動（不需石盤即可發動）；數字代表來自需該石盤等級的 tile。
 // 只要有任一來源是招式／被動，gridLevel 即為 null；否則取各 tile 的最低等級。
-function mergeGridEffect(map, key, payload, ex, lv) {
+// sa 代表該場效的來源之一是超覺醒被動技能（卡片上需標註「超」）。
+function mergeGridEffect(map, key, payload, ex, lv, sa = false) {
   const prev = map.get(key);
   if (!prev) {
-    map.set(key, { ...payload, ex, gridLevel: lv == null ? null : lv });
+    const entry = { ...payload, ex, gridLevel: lv == null ? null : lv };
+    if (sa) entry.sa = true;
+    map.set(key, entry);
     return;
   }
   if (ex) prev.ex = true;
+  if (sa) prev.sa = true;
   if (lv == null) prev.gridLevel = null;
   else if (prev.gridLevel != null) prev.gridLevel = Math.min(prev.gridLevel, lv);
 }
 
-function scanBattleEffects(text, lv, fields, formations) {
+function scanBattleEffects(text, lv, fields, formations, sa = false) {
   for (const match of text.matchAll(FIELD_EFFECT_PATTERN)) {
     const def = FIELD_EFFECT_BY_NAME.get(match[2]);
-    if (def) mergeGridEffect(fields, `${def.kind}:${def.code}`, { kind: def.kind, code: def.code }, Boolean(match[1]), lv);
+    if (def) mergeGridEffect(fields, `${def.kind}:${def.code}`, { kind: def.kind, code: def.code }, Boolean(match[1]), lv, sa);
   }
   for (const match of text.matchAll(FORMATION_PATTERN)) {
     mergeGridEffect(formations, `${match[2]}:${match[3]}`, { region: match[2], category: match[3] }, Boolean(match[1]), lv);
   }
 }
+
+const SUPER_AWAKENING_PREFIX = '超覺醒被動技能';
 
 // 一次回傳場效與鬥陣（含各自的 gridLevel）。
 export function parsePairEffects(html) {
@@ -136,6 +142,12 @@ export function parsePairEffects(html) {
   const fields = new Map();
   const formations = new Map();
   scanBattleEffects(baseText, null, fields, formations);
+  // 超覺醒被動表格：場效若由它提供，額外標註 sa（與是否同時有其他來源無關）。
+  const superAwakeningText = [...baseText.matchAll(/<table[^>]*class="[^"]*\bpassive\b[^"]*"[^>]*>([\s\S]*?)<\/table>/gi)]
+    .map((match) => match[1])
+    .filter((table) => stripTags(table).startsWith(SUPER_AWAKENING_PREFIX))
+    .join('\n');
+  if (superAwakeningText) scanBattleEffects(superAwakeningText, null, fields, formations, true);
   for (const tile of gridTiles(gridText)) scanBattleEffects(tile.desc, tile.lv, fields, formations);
   return {
     fieldEffects: [...fields.values()].sort((a, b) => FIELD_EFFECT_ORDER.get(`${a.kind}:${a.code}`) - FIELD_EFFECT_ORDER.get(`${b.kind}:${b.code}`)),
