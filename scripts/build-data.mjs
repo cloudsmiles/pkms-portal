@@ -95,6 +95,7 @@ export async function build() {
   await rm(distDir, { recursive: true, force: true });
   await mkdir(distDir, { recursive: true });
   await Promise.all(staticFiles.map((name) => cp(resolve(portalDir, name), resolve(distDir, name))));
+  await cp(resolve(portalDir, 'assets'), resolve(distDir, 'assets'), { recursive: true });
   const [detailStyle, detailUi] = await Promise.all([
     readFile(resolve(portalDir, 'overrides', 'detail-style.css'), 'utf8'),
     readFile(resolve(portalDir, 'overrides', 'detail-ui.js'), 'utf8'),

@@ -5,3 +5,7 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# 根目录 data.js 是历史残留；构建产物只生成在 dist/data.js
+data.js
+.superpowers/

@@ -4,7 +4,10 @@ import { sourcePath } from './web-path.mjs';
 (() => {
   const data = window.SYNC_GRID_DATA || { pairs: [], events: [] };
   // 多選篩選以陣列保存選中值（空陣列＝全部）；其餘維持單值 'all'。
-  const state = { tab: 'pairs', query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], formation: [], date: 'all', status: 'all', sort: 'base-desc', page: 1, pageSize: 12 };
+  const DEFAULT_STATE = { tab: 'pairs', query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], formation: [], date: 'all', status: 'all', sort: 'base-desc', page: 1, pageSize: 12 };
+  const state = { ...DEFAULT_STATE, category: [], attribute: [], rank: [], limitedTag: [], fieldEffect: [], formation: [] };
+  const MULTI_STATE_KEYS = ['category', 'attribute', 'rank', 'limitedTag', 'fieldEffect', 'formation'];
+  const SINGLE_STATE_KEYS = [['role', 'all'], ['date', 'all'], ['status', 'all'], ['sort', 'base-desc']];
   const labels = { active: '進行中', upcoming: '即將開始', ended: '已結束' };
   const $ = (selector) => document.querySelector(selector);
   const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
@@ -18,6 +21,63 @@ import { sourcePath } from './web-path.mjs';
   const FILTER_STATE_KEY = { limited: 'limitedTag' };
   const MULTI_FILTER_KEYS = new Set(['category', 'attribute', 'rank', 'limitedTag', 'fieldEffect', 'formation']);
   const stateKeyOf = (filter) => FILTER_STATE_KEY[filter] ?? filter;
+
+  // URL 即狀態：篩選/分頁可分享、重新整理後保留，瀏覽器上一頁也能回到上組條件。
+  function writeStateToUrl() {
+    const params = new URLSearchParams();
+    if (state.tab !== 'pairs') params.set('tab', state.tab);
+    if (state.query.trim()) params.set('q', state.query.trim());
+    for (const key of MULTI_STATE_KEYS) {
+      if (state[key].length) params.set(key, state[key].join(','));
+    }
+    for (const [key, fallback] of SINGLE_STATE_KEYS) {
+      if (state[key] !== fallback) params.set(key, state[key]);
+    }
+    if (state.page !== 1) params.set('page', String(state.page));
+    if (state.pageSize !== 12) params.set('pageSize', String(state.pageSize));
+    const query = params.toString();
+    history.replaceState(null, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash}`);
+  }
+
+  const optionValues = (id) => [...($(`#${id}`)?.options ?? [])].map((option) => option.value);
+  const validSingle = (value, id) => (value != null && optionValues(id).includes(value) ? value : null);
+
+  function readStateFromUrl() {
+    Object.assign(state, DEFAULT_STATE, { category: [], attribute: [], rank: [], limitedTag: [], fieldEffect: [], formation: [] });
+    const params = new URLSearchParams(location.search);
+    state.tab = params.get('tab') === 'events' ? 'events' : 'pairs';
+    state.query = params.get('q') ?? '';
+    const multiFilterId = { category: 'category-filter', attribute: 'attribute-filter', rank: 'rank-filter', limitedTag: 'limited-tag-filter', fieldEffect: 'field-effect-filter', formation: 'formation-filter' };
+    for (const key of MULTI_STATE_KEYS) {
+      const raw = params.get(key);
+      const allowed = new Set(optionValues(multiFilterId[key]));
+      state[key] = raw
+        ? [...new Set(raw.split(',').map((value) => value.trim()).filter((value) => value !== 'all' && allowed.has(value)))]
+        : [];
+    }
+    const role = validSingle(params.get('role'), 'role-filter');
+    if (role) state.role = role;
+    const date = validSingle(params.get('date'), 'date-filter');
+    if (date) state.date = date;
+    if (['active', 'upcoming', 'ended'].includes(params.get('status'))) state.status = params.get('status');
+    const sort = validSingle(params.get('sort'), 'sort-filter');
+    if (sort) state.sort = sort;
+    const pageSize = Number(params.get('pageSize'));
+    if ([12, 24, 48].includes(pageSize)) state.pageSize = pageSize;
+    const page = Number(params.get('page'));
+    if (Number.isInteger(page) && page >= 1) state.page = page;
+  }
+
+  // 多選自訂選單直接讀 state；單選仍是原生 select，URL/前進後退後需把 DOM 對齊 state。
+  function syncDomFromState() {
+    $('#search').value = state.query;
+    $('#role-filter').value = state.role;
+    $('#status-filter').value = state.status;
+    $('#date-filter').value = state.date;
+    $('#sort-filter').value = state.sort;
+    $('#page-size').value = String(state.pageSize);
+    document.querySelectorAll('.tab').forEach((button) => button.classList.toggle('is-active', button.dataset.tab === state.tab));
+  }
 
   function filteredRecords() {
     const query = state.query.trim().toLocaleLowerCase();
@@ -194,6 +254,7 @@ import { sourcePath } from './web-path.mjs';
       control.hidden = state.tab !== 'pairs' || (!isPairToolbarControl && !getViewFilters(state.tab).includes(control.dataset.filter));
     });
     document.querySelectorAll('.event-only').forEach((control) => { control.hidden = !getViewFilters(state.tab).includes(control.dataset.filter); });
+    writeStateToUrl();
   }
 
   function setTab(tab) { state.tab = tab; state.page = 1; document.querySelectorAll('.tab').forEach((button) => button.classList.toggle('is-active', button.dataset.tab === tab)); render(); }
@@ -205,7 +266,7 @@ import { sourcePath } from './web-path.mjs';
   $('#page-size').addEventListener('change', (event) => { state.pageSize = Number(event.target.value); state.page = 1; render(); });
   $('#sort-filter').addEventListener('change', (event) => { state.sort = event.target.value; state.page = 1; render(); });
   $('#clear-filters').addEventListener('click', () => {
-    Object.assign(state, { query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], formation: [], date: 'all', status: 'all', sort: 'base-desc', page: 1 });
+    Object.assign(state, DEFAULT_STATE, { category: [], attribute: [], rank: [], limitedTag: [], fieldEffect: [], formation: [] });
     $('#search').value = '';
     ['role-filter', 'date-filter', 'status-filter', 'sort-filter'].forEach((id) => { $(`#${id}`).value = id === 'sort-filter' ? 'base-desc' : 'all'; });
     render();
@@ -290,6 +351,11 @@ import { sourcePath } from './web-path.mjs';
       trigger.focus();
     }
   });
+  window.addEventListener('popstate', () => {
+    readStateFromUrl();
+    syncDomFromState();
+    render();
+  });
   $('#pagination').addEventListener('click', (event) => { const page = Number(event.target.dataset.page); if (page) { state.page = page; render(); window.scrollTo({ top: 300, behavior: 'smooth' }); } });
   $('#pair-count').textContent = data.pairs.length; $('#event-count').textContent = data.events.length;
   $('#category-filter').innerHTML = ['<option value="all">全部</option>', ...getPairCategories(data.pairs).map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)].join('');
@@ -308,5 +374,7 @@ import { sourcePath } from './web-path.mjs';
   $('#formation-filter').innerHTML = ['<option value="all">全部</option>', ...getFormationCategories().map((category) => `<option value="${escapeHtml(category.value)}">${escapeHtml(category.label)}</option>`)].join('');
   $('#date-filter').innerHTML = ['<option value="all">全部</option>', ...[...new Set(data.events.map((event) => event.start.slice(0, 10)))].map((date) => `<option value="${date}">${date.replaceAll('-', '/')}</option>`)].join('');
   initializeCustomSelects();
+  readStateFromUrl();
+  syncDomFromState();
   render();
 })();
