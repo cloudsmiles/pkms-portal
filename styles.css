@@ -129,25 +129,45 @@ h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
 .pair-role.physical { color: #274b80; border-color: #bcd6f7; background: #dbeaff; }
 .attribute-chip { border-color: transparent; }
 /* 屬性色：卡片徽章與 zone 場效晶片用淡底深字；飽和原色只留給篩選彈窗色點（::before 與 .fx-dot）。*/
-.pair-badges .attribute-chip.attribute-0, .pair-badges .field-chip.attribute-0 { background: #eceff0; color: #4a565a; }
-.pair-badges .attribute-chip.attribute-1, .pair-badges .field-chip.attribute-1 { background: #ffe0de; color: #a52b2e; }
-.pair-badges .attribute-chip.attribute-2, .pair-badges .field-chip.attribute-2 { background: #dcf3fb; color: #176b8a; }
-.pair-badges .attribute-chip.attribute-3, .pair-badges .field-chip.attribute-3 { background: #fdf3c8; color: #7a5b00; }
-.pair-badges .attribute-chip.attribute-4, .pair-badges .field-chip.attribute-4 { background: #dff3e2; color: #206b2c; }
-.pair-badges .attribute-chip.attribute-5, .pair-badges .field-chip.attribute-5 { background: #e2f4f4; color: #357074; }
-.pair-badges .attribute-chip.attribute-6, .pair-badges .field-chip.attribute-6 { background: #ffe8db; color: #9c4e1f; }
-.pair-badges .attribute-chip.attribute-7, .pair-badges .field-chip.attribute-7 { background: #efe3f7; color: #5e3478; }
-.pair-badges .attribute-chip.attribute-8, .pair-badges .field-chip.attribute-8 { background: #f3e6dd; color: #72402a; }
-.pair-badges .attribute-chip.attribute-9, .pair-badges .field-chip.attribute-9 { background: #dbe4fb; color: #2f4fa8; }
-.pair-badges .attribute-chip.attribute-10, .pair-badges .field-chip.attribute-10 { background: #fbdfea; color: #9c2f5b; }
-.pair-badges .attribute-chip.attribute-11, .pair-badges .field-chip.attribute-11 { background: #eef5d9; color: #5f751f; }
-.pair-badges .attribute-chip.attribute-12, .pair-badges .field-chip.attribute-12 { background: #ece6de; color: #5f4f3f; }
-.pair-badges .attribute-chip.attribute-13, .pair-badges .field-chip.attribute-13 { background: #f2e4f0; color: #7a4f75; }
-.pair-badges .attribute-chip.attribute-14, .pair-badges .field-chip.attribute-14 { background: #d6eef6; color: #0c5f76; }
-.pair-badges .attribute-chip.attribute-15, .pair-badges .field-chip.attribute-15 { background: #e4e2ea; color: #37344a; }
-.pair-badges .attribute-chip.attribute-16, .pair-badges .field-chip.attribute-16 { background: #e7eaf0; color: #515a6e; }
-.pair-badges .attribute-chip.attribute-17, .pair-badges .field-chip.attribute-17 { background: #ffe9f2; color: #b35178; }
-.pair-badges .attribute-chip, .pair-badges .field-chip[class*="attribute-"] { border-color: transparent; }
+.pair-badges .attribute-chip.attribute-0 { background: #eceff0; color: #4a565a; }
+.pair-badges .attribute-chip.attribute-1 { background: #ffe0de; color: #a52b2e; }
+.pair-badges .attribute-chip.attribute-2 { background: #dcf3fb; color: #176b8a; }
+.pair-badges .attribute-chip.attribute-3 { background: #fdf3c8; color: #7a5b00; }
+.pair-badges .attribute-chip.attribute-4 { background: #dff3e2; color: #206b2c; }
+.pair-badges .attribute-chip.attribute-5 { background: #e2f4f4; color: #357074; }
+.pair-badges .attribute-chip.attribute-6 { background: #ffe8db; color: #9c4e1f; }
+.pair-badges .attribute-chip.attribute-7 { background: #efe3f7; color: #5e3478; }
+.pair-badges .attribute-chip.attribute-8 { background: #f3e6dd; color: #72402a; }
+.pair-badges .attribute-chip.attribute-9 { background: #dbe4fb; color: #2f4fa8; }
+.pair-badges .attribute-chip.attribute-10 { background: #fbdfea; color: #9c2f5b; }
+.pair-badges .attribute-chip.attribute-11 { background: #eef5d9; color: #5f751f; }
+.pair-badges .attribute-chip.attribute-12 { background: #ece6de; color: #5f4f3f; }
+.pair-badges .attribute-chip.attribute-13 { background: #f2e4f0; color: #7a4f75; }
+.pair-badges .attribute-chip.attribute-14 { background: #d6eef6; color: #0c5f76; }
+.pair-badges .attribute-chip.attribute-15 { background: #e4e2ea; color: #37344a; }
+.pair-badges .attribute-chip.attribute-16 { background: #e7eaf0; color: #515a6e; }
+.pair-badges .attribute-chip.attribute-17 { background: #ffe9f2; color: #b35178; }
+.pair-badges .attribute-chip { border-color: transparent; }
+/* 領域場效晶片直接用屬性飽和色（與篩選彈窗色點同一色碼），文字依底色明度配深墨或白。 */
+.pair-badges .field-chip.attribute-0 { background: #969493; color: #202b29; }
+.pair-badges .field-chip.attribute-1 { background: #bd3437; color: #fff; }
+.pair-badges .field-chip.attribute-2 { background: #55b8e2; color: #0d3a4d; }
+.pair-badges .field-chip.attribute-3 { background: #dcb40a; color: #3d3500; }
+.pair-badges .field-chip.attribute-4 { background: #459e4e; color: #123018; }
+.pair-badges .field-chip.attribute-5 { background: #94c9cb; color: #123f44; }
+.pair-badges .field-chip.attribute-6 { background: #d57741; color: #42210c; }
+.pair-badges .field-chip.attribute-7 { background: #784a91; color: #fff; }
+.pair-badges .field-chip.attribute-8 { background: #975939; color: #fff; }
+.pair-badges .field-chip.attribute-9 { background: #4971dd; color: #fff; }
+.pair-badges .field-chip.attribute-10 { background: #c34b78; color: #fff; }
+.pair-badges .field-chip.attribute-11 { background: #9cb558; color: #25330a; }
+.pair-badges .field-chip.attribute-12 { background: #85725f; color: #fff; }
+.pair-badges .field-chip.attribute-13 { background: #a0739b; color: #fff; }
+.pair-badges .field-chip.attribute-14 { background: #1284a1; color: #fff; }
+.pair-badges .field-chip.attribute-15 { background: #4a4759; color: #fff; }
+.pair-badges .field-chip.attribute-16 { background: #7f889c; color: #1d2430; }
+.pair-badges .field-chip.attribute-17 { background: #ed9bb8; color: #5c1f38; }
+.pair-badges .field-chip[class*="attribute-"] { border-color: transparent; }
 /* 場效篩選彈窗：zone 分類的色點維持飽和原色（與屬性彈窗 ::before 同一套色票）。*/
 .fieldeffect-select .fx-dot.attribute-0 { background: #969493; }
 .fieldeffect-select .fx-dot.attribute-1 { background: #bd3437; }
@@ -274,8 +294,8 @@ body { font-size: var(--portal-body-size); }
 .pair-badges .pair-limited-tag { display: inline-block; padding: 2px 9px; border: 1px solid #f6c9dd; border-radius: 999px; color: #9c3f68; background: #ffe0ee; font-size: 10px; font-weight: 700; line-height: 1.45; white-space: nowrap; }
 .pair-badges .pair-role { padding: 2px 9px; }
 .pair-badges .pair-role[class] { box-shadow: none; }
-/* 場效標籤：天氣（晴橙/雨藍/沙褐/冰雹青）、場地（電黃/草綠/精神粉）、領域沿用屬性色。
-   色票類別不帶前綴，卡片徽章與篩選選單色點共用同一語意色。ＥＸ 強化版統一金邊。 */
+/* 場效標籤：天氣（晴黃/雨藍/沙褐/冰雹青）、場地（電黃/草綠/精神粉）、領域用屬性飽和色，
+   色票類別不帶前綴，卡片徽章與篩選選單色點共用同一語意色碼。ＥＸ 強化版統一金邊。 */
 .pair-badges .field-chip { display: inline-block; padding: 2px 9px; border: 1px solid transparent; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1.45; white-space: nowrap; }
 .field-weather-sun { color: #4a3300; background: #ffc531; }
 .field-weather-rain { color: #0d2b45; background: #6fb6ec; }
@@ -284,13 +304,6 @@ body { font-size: var(--portal-body-size); }
 .field-terrain-electric { color: #3d3500; background: #f2d94b; }
 .field-terrain-grassy { color: #123a1a; background: #7fc96a; }
 .field-terrain-psychic { color: #4a1238; background: #e88fd0; }
-.pair-badges .field-chip.field-weather-sun { background: #fdf0c8; color: #7a5b00; }
-.pair-badges .field-chip.field-weather-rain { background: #dcecfb; color: #1f5a8c; }
-.pair-badges .field-chip.field-weather-sand { background: #f3e6dd; color: #7a4f2e; }
-.pair-badges .field-chip.field-weather-hail { background: #e2f4f4; color: #357074; }
-.pair-badges .field-chip.field-terrain-electric { background: #fdf3c8; color: #8a6d00; }
-.pair-badges .field-chip.field-terrain-grassy { background: #dff3e2; color: #2f7a3a; }
-.pair-badges .field-chip.field-terrain-psychic { background: #fbdfea; color: #9c2f5b; }
 .pair-badges .field-chip.is-ex { border-color: #e8cf7a; background: #fdf0c8; color: #7a5b00; }
 
 /* 鬥陣晶片：顯示完整「地區鬥陣（類別）」，顏色依類別（物攻／特攻／防禦）區分。 */
