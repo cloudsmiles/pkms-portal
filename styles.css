@@ -213,6 +213,8 @@ body { font-size: var(--portal-body-size); }
   }
   .page-shell { width: calc(100% - 24px); }
   .hero { min-height: 206px; }
+  .hero-mark { border-radius: 14px; }
+  .select-box, .clear-filters { box-shadow: none; }
   .hero-copy { margin-top: 13px; font-size: 13px; line-height: 1.65; }
   .tabs { gap: 20px; margin-top: 28px; overflow-x: auto; }
   .tab { flex: 0 0 auto; white-space: nowrap; }
@@ -249,6 +251,7 @@ body { font-size: var(--portal-body-size); }
   .select-box, .custom-select { flex-basis: 100%; }
   .clear-filters { flex-basis: 100%; }
   .content-grid { grid-template-columns: 1fr 1fr; }
+  .pair-card, .event-card { border-radius: 14px; box-shadow: 0 3px 8px rgba(31,74,61,.08); }
   .event-card { grid-column: span 2; }
   .page-ellipsis { width: 12px; }
 }
