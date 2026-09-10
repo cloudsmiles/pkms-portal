@@ -8,20 +8,21 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <header class="hero">
-    <div class="hero-inner">
-      <div class="hero-mark" aria-hidden="true">SG<span>+</span></div>
-      <div>
-        <p class="eyebrow">SYNC GRID / DATABASE</p>
-        <h1>帕希歐資料庫</h1>
-        <p class="hero-copy">把拍組和活動排成一張好找、好用的時間地圖。</p>
+  <main>
+   <div class="site-banner">
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="hero-mark" aria-hidden="true">SG<span>+</span></div>
+        <div>
+          <p class="eyebrow">SYNC GRID / DATABASE</p>
+          <h1>帕希歐資料庫</h1>
+          <p class="hero-copy">把拍組和活動排成一張好找、好用的時間地圖。</p>
+        </div>
+        <div class="hero-note"><span class="live-dot"></span>資料來自本地專案</div>
       </div>
-      <div class="hero-note"><span class="live-dot"></span>資料來自本地專案</div>
-    </div>
-  </header>
+    </header>
 
-  <div class="page-shell">
-    <main>
+    <div class="page-shell">
       <nav class="tabs" aria-label="資料分類">
         <button class="tab is-active" data-tab="pairs" type="button">拍組圖鑑 <span id="pair-count">0</span></button>
         <button class="tab" data-tab="events" type="button">活動日志 <span id="event-count">0</span></button>
@@ -43,7 +44,10 @@
         <button id="clear-filters" class="clear-filters" type="button">清除篩選</button>
       </section>
       <div id="active-filters" class="active-filters" aria-live="polite"></div>
+    </div>
+   </div>
 
+   <div class="page-shell">
       <section class="section-heading">
         <div><p class="eyebrow" id="section-kicker">PAIR INDEX</p><h2 id="section-title">拍組圖鑑</h2></div>
         <p id="result-summary" class="result-summary"></p>
@@ -51,9 +55,9 @@
       <div id="content" class="content-grid"></div>
       <div id="empty" class="empty-state" hidden><strong>找不到符合條件的資料</strong><span>換個關鍵字或放寬篩選條件試試。</span></div>
       <nav id="pagination" class="pagination" aria-label="分頁"></nav>
-    </main>
     <footer>Sync Grid · 本頁為資料索引，詳細內容請點擊卡片查看</footer>
-  </div>
+   </div>
+  </main>
   <script src="./data.js"></script>
   <script type="module" src="./app.js"></script>
 </body>

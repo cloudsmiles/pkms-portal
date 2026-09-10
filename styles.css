@@ -6,10 +6,13 @@ body { margin: 0; color: var(--ink); background-color: var(--bg); font-family: '
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 .page-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
-.hero { position: relative; isolation: isolate; overflow: hidden; min-height: 240px; border-bottom: 2px solid var(--mint-soft); }
+/* 滿版照片底：頂部清晰 cover，進入分頁／工具列區後轉模糊，並在拍組圖鑑標題前淡出色票底色。 */
+.site-banner { position: relative; isolation: isolate; }
+.site-banner > * { position: relative; z-index: 1; }
+.site-banner::before { content: ''; position: absolute; inset: 0; z-index: 0; background: url('./assets/salina.jpeg') center top/cover no-repeat; filter: blur(26px) saturate(1.08); opacity: .75; -webkit-mask-image: linear-gradient(180deg, transparent 48%, rgba(0,0,0,.55) 72%, #000 94%, transparent 100%); mask-image: linear-gradient(180deg, transparent 48%, rgba(0,0,0,.55) 72%, #000 94%, transparent 100%); }
+.site-banner::after { content: ''; position: absolute; inset: 0; z-index: 0; background: linear-gradient(180deg, rgba(244,250,247,.05) 42%, rgba(244,250,247,.45) 76%, var(--bg) 97%), url('./assets/salina.jpeg') center top/cover no-repeat; -webkit-mask-image: linear-gradient(180deg, #000 66%, rgba(0,0,0,.78) 85%, transparent 98%); mask-image: linear-gradient(180deg, #000 66%, rgba(0,0,0,.78) 85%, transparent 98%); }
+.hero { min-height: 240px; }
 .hero-inner { width: min(1180px, calc(100% - (var(--portal-page-padding) * 2))); margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center; min-height: 240px; }
-.hero::before { content: ''; position: absolute; inset: -30px; z-index: -2; background: url('./assets/salina.jpeg') 50% 30%/cover no-repeat; filter: blur(26px) saturate(1.08); opacity: .6; -webkit-mask-image: linear-gradient(180deg, transparent 42%, rgba(0,0,0,.6) 68%, #000 90%, transparent 100%); mask-image: linear-gradient(180deg, transparent 42%, rgba(0,0,0,.6) 68%, #000 90%, transparent 100%); }
-.hero::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(244,250,247,.08) 30%, rgba(244,250,247,.6) 74%, var(--bg) 98%), url('./assets/salina.jpeg') 50% 28%/cover no-repeat; -webkit-mask-image: linear-gradient(180deg, #000 50%, rgba(0,0,0,.8) 70%, transparent 97%); mask-image: linear-gradient(180deg, #000 50%, rgba(0,0,0,.8) 70%, transparent 97%); }
 .hero-inner > * { position: relative; z-index: 1; }
 .hero-mark { width: 74px; height: 74px; display: grid; place-items: center; border: 0; border-radius: 18px; color: #fff; background: linear-gradient(135deg, #65e0bd, #2fae86); font: 900 23px 'Zen Maru Gothic', 'PingFang TC', sans-serif; letter-spacing: -1px; transform: rotate(-6deg); box-shadow: var(--shadow-control); }
 .hero-mark span { color: #fff3d6; }
@@ -22,7 +25,7 @@ h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
 .hero-note { align-self: start; margin-top: 35px; padding: 7px 13px; border: 1.5px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.85); color: var(--muted); font-size: 12px; white-space: nowrap; }
 .live-dot { display: inline-block; width: 7px; height: 7px; background: var(--mint); border-radius: 50%; margin-right: 7px; }
 .tabs { display: flex; gap: 28px; border-bottom: 1px solid var(--line); margin-top: 34px; }
-.tab { color: var(--muted); background: transparent; border: 0; border-bottom: 3px solid transparent; padding: 0 4px 14px; cursor: pointer; font-family: 'Zen Maru Gothic', 'PingFang TC', sans-serif; font-weight: 700; }.tab.is-active { color: var(--ink); border-color: var(--mint); }.tab span { color: var(--mint-ink); background: var(--mint-soft); border-radius: 999px; padding: 1px 8px; font: 700 11px 'Zen Maru Gothic', 'PingFang TC', sans-serif; margin-left: 6px; }
+.tab { color: var(--muted); background: transparent; border: 0; border-bottom: 3px solid transparent; padding: 0 4px 14px; cursor: pointer; font-family: 'Zen Maru Gothic', 'PingFang TC', sans-serif; font-weight: 700; text-shadow: 0 1px 8px rgba(244,250,247,.95), 0 0 3px rgba(244,250,247,.85); }.tab.is-active { color: var(--ink); border-color: var(--mint); }.tab span { color: var(--mint-ink); background: var(--mint-soft); border-radius: 999px; padding: 1px 8px; font: 700 11px 'Zen Maru Gothic', 'PingFang TC', sans-serif; margin-left: 6px; }
 .toolbar { display: flex; gap: 10px; margin: 26px 0 48px; flex-wrap: wrap; }
 .search-box { flex: 1 1 290px; min-width: 220px; display: flex; gap: 10px; align-items: center; color: var(--mint); border: 1.5px solid var(--line); border-radius: 14px; background: #fff; box-shadow: var(--shadow-control); padding: 0 14px; height: 48px; }
 .search-box span { font-size: 27px; line-height: 0; transform: rotate(-15deg); }
