@@ -235,10 +235,10 @@ th { color: #fff; background: var(--detail-accent-dark); font-weight: 700; }
   box-shadow: 0 8px 22px rgba(120, 90, 220, .22);
 }
 
-/* 潛能（餅乾）：與青藍色被動區分的暖金底色。 */
+/* 潛能（餅乾）：與青藍色被動區分的暖金純色底。 */
 table.passive-cookie {
   border-color: #e6cf92;
-  background: linear-gradient(180deg, #fdf5e2, #f7e9c6);
+  background: #faefd4;
 }
 
 /* 超覺醒被動：彩虹框 + 極淡炫彩底，標題字樣用彩虹膠囊。 */
