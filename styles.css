@@ -92,15 +92,24 @@ h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
 .pair-art-bg { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.28); filter: blur(20px) saturate(1.55) brightness(.9); }
 .pair-art::after { content: ''; position: absolute; inset: 0; z-index: 1; background: var(--art-tint); -webkit-backdrop-filter: blur(5px) saturate(1.4); backdrop-filter: blur(5px) saturate(1.4); }
 .pair-art-main { position: relative; z-index: 2; width: 142px; max-width: 82%; height: auto; aspect-ratio: 1; object-fit: contain; -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent), linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent); mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent), linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent); -webkit-mask-composite: source-in; mask-composite: intersect; filter: drop-shadow(0 7px 10px rgba(31,50,44,.28)); }
-.pair-art .ex-toggle { z-index: 3; }
 .pair-art .missing { position: relative; z-index: 2; color: #b7cbc4; font: 700 28px 'Zen Maru Gothic', 'PingFang TC', sans-serif; }
+/* 懸浮卡片：EX 圖淡入（普通圖交叉淡出），主圖播放呼吸縮放。 */
+.pair-art-bg, .pair-art-main { transition: opacity .45s ease; }
+/* 兩張主圖必須疊在同一位置（grid 會把第二張塞到隱含列），EX 主圖改絕對置中。 */
+.pair-art-main.pair-art-ex { position: absolute; inset: 0; margin: auto; }
+.pair-art-ex { opacity: 0; }
+.pair-card:has(.pair-art-ex):hover .pair-art-ex,
+.pair-card:has(.pair-art-ex):focus-within .pair-art-ex { opacity: 1; }
+.pair-card:has(.pair-art-ex):hover .pair-art-bg:not(.pair-art-ex),
+.pair-card:has(.pair-art-ex):hover .pair-art-main:not(.pair-art-ex),
+.pair-card:has(.pair-art-ex):focus-within .pair-art-bg:not(.pair-art-ex),
+.pair-card:has(.pair-art-ex):focus-within .pair-art-main:not(.pair-art-ex) { opacity: 0; }
+.pair-card:has(.pair-art-ex):hover .pair-art-main,
+.pair-card:has(.pair-art-ex):focus-within .pair-art-main { animation: art-breathe 2.8s ease-in-out infinite; }
+@keyframes art-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 .pair-meta { padding: 13px 14px 15px; border-top: 1px solid var(--line); background: #fff; }
 .pair-category { color: var(--orange); font-size: 11px; }
 .pair-name { display: block; margin-top: 7px; font-family: 'Zen Maru Gothic', 'PingFang TC', sans-serif; font-size: 14px; line-height: 1.55; font-weight: 700; }
-.ex-toggle { position: absolute; right: 8px; bottom: 8px; z-index: 2; padding: 5px 10px; border: 1.5px solid #a9e3d0; border-radius: 999px; color: var(--mint-ink); background: rgba(255,255,255,.92); cursor: pointer; font-size: 10px; font-weight: 700; box-shadow: var(--shadow-control); }
-.ex-toggle:hover { background: var(--mint-chip); }
-.ex-toggle.is-ex { color: #8a4b12; background: var(--orange-soft); border-color: #f3c99b; }
-.ex-toggle:disabled { color: #a9bbb5; background: #f1f5f3; border-color: var(--line); cursor: not-allowed; }
 .event-card { grid-column: span 2; display: flex; flex-direction: column; min-height: 0; }
 .event-visual { height: clamp(170px, 20vw, 250px); display: grid; place-items: center; overflow: hidden; background: #f0f6f3; padding: 10px; }
 .event-card img { display: block; width: 100%; height: 100%; object-fit: contain; }
@@ -126,7 +135,7 @@ h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
 :focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
 @media (max-width: 850px) { .event-card { grid-column: 1 / -1; } }
 @media (max-width: 620px) { .page-shell { width: min(100% - 24px, 520px); }.hero, .hero-inner { min-height: 215px; }.hero-inner { grid-template-columns: auto 1fr; gap: 14px; }.hero-mark { width: 56px; height: 56px; font-size: 18px; }.hero-note { grid-column: 2; margin: -38px 0 0; }.tabs { margin-top: 28px; gap: 20px; }.toolbar { margin-bottom: 34px; }.select-box { flex: 1; }.section-heading { display: block; }.result-summary { margin-top: 13px; }.content-grid { grid-template-columns: repeat(2, 1fr); gap: 9px; }.pair-meta { padding: 10px; }.pair-name { font-size: 13px; }.event-card { grid-column: span 2; }.event-visual { height: 190px; }.event-card img { max-height: 180px; }.event-info { padding: 15px; }.event-title { font-size: 16px; margin-top: 15px; } }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
 .pair-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .pair-role, .attribute-chip { display: inline-block; padding: 2px 9px; border: 1px solid transparent; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
 .pair-role { color: #fff; border-color: transparent; background: #0f8a5f; }

@@ -118,7 +118,10 @@ import { sourcePath } from './web-path.mjs';
     ? `<img loading="lazy" src="${sourcePath(image)}" alt="${escapeHtml(alt)}" onerror="this.hidden=true">`
     : '';
 
-  const exToggleMarkup = (record) => `<button class="ex-toggle" type="button" data-normal-image="${sourcePath(record.image)}" data-ex-image="${sourcePath(record.exImage)}" ${record.exImage ? '' : 'disabled'} aria-label="${record.exImage ? '目前為普通頭像，點擊切換到★6 EX' : '沒有★6 EX頭像'}" title="${record.exImage ? '目前為普通頭像，點擊切換到★6 EX' : '沒有★6 EX頭像'}">普通</button>`;
+  // EX 圖預設隱藏、與普通圖疊放；懸浮卡片時以 CSS 淡入並播放呼吸動畫。
+  const exArtMarkup = (record) => (record.exImage
+    ? `<img class="pair-art-bg pair-art-ex" loading="lazy" src="${sourcePath(record.exImage)}" alt="" onerror="this.hidden=true"><img class="pair-art-main pair-art-ex" loading="lazy" src="${sourcePath(record.exImage)}" alt="" onerror="this.hidden=true">`
+    : '');
 
   // 場效／鬥陣若只能靠開石盤取得（gridLevel>1），於晶片右上角標註所需石盤等級。
   const gridLevelBadge = (level) => (Number(level) > 1 ? `<i class="chip-lv" title="需石盤等級 ${level}">${level}</i>` : '');
@@ -131,7 +134,7 @@ import { sourcePath } from './web-path.mjs';
   const formationChip = (form) => `<span class="formation-chip formation-${formationTone(form.category)}">${escapeHtml(getFormationLabel(form.region, form.category))}${gridLevelBadge(form.gridLevel)}</span>`;
 
   function renderCard(record) {
-    if (shared.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}${location.search ? `?back=${encodeURIComponent(location.search)}` : ''}"><div class="pair-art">${record.image ? `<img class="pair-art-bg" loading="lazy" src="${sourcePath(record.image)}" alt="" onerror="this.hidden=true">` : ''}${record.image ? `<img class="pair-art-main" loading="lazy" src="${sourcePath(record.image)}" alt="${escapeHtml(record.name)}" onerror="this.hidden=true">` : ''}${exToggleMarkup(record)}</div><div class="pair-meta"><span class="pair-topline">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}${record.rank != null ? `<span class="pair-rank rank-fam-${rankFamily(record.rank)}" title="田雞榜等級">${getRankTierLabel(record.rank)}</span>` : ''}</span><span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${record.role === '物理攻擊型' ? 'physical' : 'special'}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}${(record.fieldEffects ?? []).map(fieldEffectChip).join('')}${(record.formations ?? []).map(formationChip).join('')}</div></div></a></article>`;
+    if (shared.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}${location.search ? `?back=${encodeURIComponent(location.search)}` : ''}"><div class="pair-art">${record.image ? `<img class="pair-art-bg" loading="lazy" src="${sourcePath(record.image)}" alt="" onerror="this.hidden=true">` : ''}${record.image ? `<img class="pair-art-main" loading="lazy" src="${sourcePath(record.image)}" alt="${escapeHtml(record.name)}" onerror="this.hidden=true">` : ''}${exArtMarkup(record)}</div><div class="pair-meta"><span class="pair-topline">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}${record.rank != null ? `<span class="pair-rank rank-fam-${rankFamily(record.rank)}" title="田雞榜等級">${getRankTierLabel(record.rank)}</span>` : ''}</span><span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${record.role === '物理攻擊型' ? 'physical' : 'special'}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}${(record.fieldEffects ?? []).map(fieldEffectChip).join('')}${(record.formations ?? []).map(formationChip).join('')}</div></div></a></article>`;
     const status = eventStatus(record);
     return `<article class="event-card"><div class="event-visual">${record.image ? imageMarkup(record.image, record.title) : '<div class="event-art-empty" aria-hidden="true"></div>'}</div><div class="event-info"><div class="event-dates">${formatDate(record.start)} — ${formatDate(record.end)}<span class="event-status ${status}">${labels[status]}</span></div><h3 class="event-title">${escapeHtml(record.title)}</h3><p class="event-desc">${escapeHtml(record.description || '暫無活動說明')}</p></div></article>`;
   }
@@ -242,17 +245,6 @@ import { sourcePath } from './web-path.mjs';
     state.page = Math.min(state.page, totalPages);
     const visible = records.slice((state.page - 1) * shared.pageSize, state.page * shared.pageSize);
     $('#content').innerHTML = visible.map(renderCard).join('');
-    $('#content').querySelectorAll('.ex-toggle').forEach((button) => button.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const images = button.closest('.pair-art').querySelectorAll('img');
-      if (!images.length) return;
-      const isEx = button.classList.toggle('is-ex');
-      images.forEach((image) => { image.src = isEx ? button.dataset.exImage : button.dataset.normalImage; });
-      button.textContent = isEx ? '★6 EX' : '普通';
-      button.title = isEx ? '目前為★6 EX頭像，點擊切換到普通頭像' : '目前為普通頭像，點擊切換到★6 EX';
-      button.setAttribute('aria-label', button.title);
-    }));
     $('#empty').hidden = records.length > 0;
     $('#result-summary').textContent = `顯示 ${records.length ? (state.page - 1) * shared.pageSize + 1 : 0}–${Math.min(state.page * shared.pageSize, records.length)} 筆，共 ${records.length} 筆`;
     renderPagination(totalPages);

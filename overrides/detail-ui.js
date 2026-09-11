@@ -251,6 +251,45 @@
   // 明確管理內容 Tab，避免不同瀏覽器對 :target 初始狀態處理不一致。
   const panels = [...content.children];
   const tabs = [...document.querySelectorAll('.tab a')];
+
+  // 雙形態頁的第二（以上）個 Tab：由面板內容與 Tab 名判定是極巨化／太晶化／超級進化，補上官方徽章。
+  const FORM_BADGES = {
+    dyna: { src: '../../assets/forms/dyna.png', label: '極巨化形態' },
+    mega: { src: '../../assets/forms/mega.png', label: '超級進化形態' },
+    tera: { src: '../../assets/forms/tera.png', label: '太晶化形態' },
+  };
+  const detectForm = (panel, tabText) => {
+    const text = panel.textContent;
+    if (text.includes('拍組極巨化招式')) return 'dyna';
+    if (text.includes('太晶')) return 'tera';
+    if (tabText.startsWith('超級')) return 'mega';
+    return null;
+  };
+  tabs.forEach((tab, index) => {
+    if (index === 0 || !panels[index]) return;
+    const tabText = tab.textContent.trim();
+    const kind = detectForm(panels[index], tabText);
+    if (!kind) return;
+    const { src, label } = FORM_BADGES[kind];
+    const tabIcon = document.createElement('img');
+    tabIcon.className = 'form-badge form-badge-tab';
+    tabIcon.src = src;
+    tabIcon.alt = '';
+    tabIcon.title = label;
+    tabIcon.setAttribute('aria-label', label);
+    tab.append(tabIcon);
+
+    const ribbon = document.createElement('div');
+    ribbon.className = `form-ribbon form-ribbon-${kind}`;
+    const panelIcon = document.createElement('img');
+    panelIcon.className = 'form-badge form-badge-ribbon';
+    panelIcon.src = src;
+    panelIcon.alt = '';
+    const text = document.createElement('span');
+    text.textContent = label;
+    ribbon.append(panelIcon, text);
+    panels[index].prepend(ribbon);
+  });
   const showPanel = (id) => {
     panels.forEach((panel) => { panel.style.display = panel.id === id ? 'block' : 'none'; });
     tabs.forEach((tab) => tab.classList.toggle('is-active', tab.getAttribute('href') === `#${id}`));
