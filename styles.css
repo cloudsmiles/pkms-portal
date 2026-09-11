@@ -107,10 +107,10 @@ h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
 .event-art-empty { width: 100%; height: 100%; min-height: 150px; background: repeating-linear-gradient(-45deg, #eef4f1, #eef4f1 8px, #e2ede8 8px, #e2ede8 16px); }
 .event-info { padding: 19px 20px; background: #fff; }
 .event-dates { color: var(--mint-ink); font: 700 11px 'Zen Maru Gothic', 'PingFang TC', sans-serif; letter-spacing: .04em; }
-.event-status { float: right; padding: 2px 10px; border-radius: 999px; font-size: 10px; font-weight: 700; }
-.event-status.active { color: #176b52; background: #d6f4e8; }
-.event-status.upcoming { color: #8a4b12; background: #ffe6cc; }
-.event-status.ended { color: var(--muted); background: #fff; border: 1px solid var(--line); }
+.event-status { float: right; padding: 2px 10px; border-radius: 8px; font-size: 10px; font-weight: 700; }
+.event-status.active { color: #fff; background: #1b8a4a; }
+.event-status.upcoming { color: #fff; background: #c2620d; }
+.event-status.ended { color: #54635f; background: #edf1ef; border: 1px solid var(--line); }
 .event-title { font-family: 'Zen Maru Gothic', 'PingFang TC', sans-serif; font-size: 18px; line-height: 1.45; margin: 19px 0 9px; }
 .event-desc { color: var(--muted); font-size: 13px; line-height: 1.7; margin: 0; }
 .empty-state { margin: 20px 0; padding: 60px 20px; text-align: center; border: 1.5px dashed var(--line); border-radius: 18px; background: #fff; box-shadow: var(--shadow-card); color: var(--muted); }
@@ -129,29 +129,28 @@ h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
 .pair-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .pair-role, .attribute-chip { display: inline-block; padding: 2px 9px; border: 1px solid transparent; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
-.pair-role { color: #176b52; border-color: #b1e7d3; background: #d6f4e8; }
-.pair-role.physical { color: #274b80; border-color: #bcd6f7; background: #dbeaff; }
+.pair-role { color: #fff; border-color: transparent; background: #0f8a5f; }
+.pair-role.physical { color: #fff; border-color: transparent; background: #2f66d6; }
 .attribute-chip { border-color: transparent; }
-/* 屬性色：卡片徽章與 zone 場效晶片用淡底深字；飽和原色只留給篩選彈窗色點（::before 與 .fx-dot）。*/
-.pair-badges .attribute-chip.attribute-0 { background: #eceff0; color: #4a565a; }
-.pair-badges .attribute-chip.attribute-1 { background: #ffe0de; color: #a52b2e; }
-.pair-badges .attribute-chip.attribute-2 { background: #dcf3fb; color: #176b8a; }
-.pair-badges .attribute-chip.attribute-3 { background: #fdf3c8; color: #7a5b00; }
-.pair-badges .attribute-chip.attribute-4 { background: #dff3e2; color: #206b2c; }
-.pair-badges .attribute-chip.attribute-5 { background: #e2f4f4; color: #357074; }
-.pair-badges .attribute-chip.attribute-6 { background: #ffe8db; color: #9c4e1f; }
-.pair-badges .attribute-chip.attribute-7 { background: #efe3f7; color: #5e3478; }
-.pair-badges .attribute-chip.attribute-8 { background: #f3e6dd; color: #72402a; }
-.pair-badges .attribute-chip.attribute-9 { background: #dbe4fb; color: #2f4fa8; }
-.pair-badges .attribute-chip.attribute-10 { background: #fbdfea; color: #9c2f5b; }
-.pair-badges .attribute-chip.attribute-11 { background: #eef5d9; color: #5f751f; }
-.pair-badges .attribute-chip.attribute-12 { background: #ece6de; color: #5f4f3f; }
-.pair-badges .attribute-chip.attribute-13 { background: #f2e4f0; color: #7a4f75; }
-.pair-badges .attribute-chip.attribute-14 { background: #d6eef6; color: #0c5f76; }
-.pair-badges .attribute-chip.attribute-15 { background: #e4e2ea; color: #37344a; }
-.pair-badges .attribute-chip.attribute-16 { background: #e7eaf0; color: #515a6e; }
-.pair-badges .attribute-chip.attribute-17 { background: #ffe9f2; color: #b35178; }
-.pair-badges .attribute-chip { border-color: transparent; }
+/* 屬性色：Material 風格飽和實心 chip（與場效晶片、篩選色點同一套色票，文字依明度配深墨或白）。*/
+.pair-badges .attribute-chip.attribute-0 { background: #969493; color: #202b29; }
+.pair-badges .attribute-chip.attribute-1 { background: #bd3437; color: #fff; }
+.pair-badges .attribute-chip.attribute-2 { background: #55b8e2; color: #0d3a4d; }
+.pair-badges .attribute-chip.attribute-3 { background: #dcb40a; color: #3d3500; }
+.pair-badges .attribute-chip.attribute-4 { background: #459e4e; color: #123018; }
+.pair-badges .attribute-chip.attribute-5 { background: #94c9cb; color: #123f44; }
+.pair-badges .attribute-chip.attribute-6 { background: #d57741; color: #42210c; }
+.pair-badges .attribute-chip.attribute-7 { background: #784a91; color: #fff; }
+.pair-badges .attribute-chip.attribute-8 { background: #975939; color: #fff; }
+.pair-badges .attribute-chip.attribute-9 { background: #4971dd; color: #fff; }
+.pair-badges .attribute-chip.attribute-10 { background: #c34b78; color: #fff; }
+.pair-badges .attribute-chip.attribute-11 { background: #9cb558; color: #25330a; }
+.pair-badges .attribute-chip.attribute-12 { background: #85725f; color: #fff; }
+.pair-badges .attribute-chip.attribute-13 { background: #a0739b; color: #fff; }
+.pair-badges .attribute-chip.attribute-14 { background: #1284a1; color: #fff; }
+.pair-badges .attribute-chip.attribute-15 { background: #4a4759; color: #fff; }
+.pair-badges .attribute-chip.attribute-16 { background: #7f889c; color: #1d2430; }
+.pair-badges .attribute-chip.attribute-17 { background: #ed9bb8; color: #5c1f38; }
 /* 領域場效晶片直接用屬性飽和色（與篩選彈窗色點同一色碼），文字依底色明度配深墨或白。 */
 .pair-badges .field-chip.attribute-0 { background: #969493; color: #202b29; }
 .pair-badges .field-chip.attribute-1 { background: #bd3437; color: #fff; }
@@ -197,7 +196,7 @@ h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
 .pair-topline { display: flex; align-items: center; gap: 6px; min-height: 17px; }
 .pair-topline .pair-total { float: none; margin-left: auto; }
 .pair-rank {
-  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  display: inline-block; padding: 2px 8px; border-radius: 8px;
   font-size: 10px; font-weight: 700; line-height: 1.5; white-space: nowrap;
   border: 1px solid transparent;
 }
@@ -291,14 +290,14 @@ body { font-size: var(--portal-body-size); }
 .pair-badges .attribute-chip,
 .pair-badges .pair-limited-tag,
 .pair-badges .field-chip,
-.pair-badges .formation-chip { border-radius: 999px; font-weight: 700; line-height: 1.45; white-space: nowrap; }
-.pair-badges .pair-category { display: inline-block; padding: 2px 9px; border: 1px solid #f3d9bd; color: #8a4b12; background: var(--orange-soft); font-size: 10px; }
-.pair-badges .pair-limited-tag { display: inline-block; padding: 2px 9px; border: 1px solid #f6c9dd; border-radius: 999px; color: #9c3f68; background: #ffe0ee; font-size: 10px; font-weight: 700; line-height: 1.45; white-space: nowrap; }
-.pair-badges .pair-role { padding: 2px 9px; }
+.pair-badges .formation-chip { border-radius: 8px; font-weight: 700; line-height: 1.45; white-space: nowrap; }
+.pair-badges .pair-category { display: inline-block; padding: 2px 9px; border: 1px solid transparent; color: #fff; background: #c2410c; font-size: 10px; }
+.pair-badges .pair-limited-tag { display: inline-block; padding: 2px 9px; border: 1px solid transparent; border-radius: 8px; color: #fff; background: #c2185b; font-size: 10px; font-weight: 700; line-height: 1.45; white-space: nowrap; }
+.pair-badges .pair-role { padding: 2px 9px; border-radius: 8px; }
 .pair-badges .pair-role[class] { box-shadow: none; }
 /* 場效標籤：天氣（晴黃/雨藍/沙褐/冰雹青）、場地（電黃/草綠/精神粉）、領域用屬性飽和色，
    色票類別不帶前綴，卡片徽章與篩選選單色點共用同一語意色碼。ＥＸ 強化版統一金邊。 */
-.pair-badges .field-chip { display: inline-block; padding: 2px 9px; border: 1px solid transparent; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1.45; white-space: nowrap; }
+.pair-badges .field-chip { display: inline-block; padding: 2px 9px; border: 1px solid transparent; border-radius: 8px; font-size: 10px; font-weight: 700; line-height: 1.45; white-space: nowrap; }
 .field-weather-sun { color: #4a3300; background: #ffc531; }
 .field-weather-rain { color: #0d2b45; background: #6fb6ec; }
 .field-weather-sand { color: #3d2c12; background: #d9b38c; }
@@ -309,11 +308,11 @@ body { font-size: var(--portal-body-size); }
 .pair-badges .field-chip.is-ex { border-color: #e8cf7a; background: #fdf0c8; color: #7a5b00; }
 
 /* 鬥陣晶片：顯示完整「地區鬥陣（類別）」，顏色依類別（物攻／特攻／防禦）區分。 */
-.pair-badges .formation-chip { position: relative; display: inline-block; padding: 2px 9px; border: 1px solid transparent; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1.45; white-space: nowrap; }
-.formation-physical { background: #ffe0de; color: #a52b2e; }
-.formation-special { background: #dbeaff; color: #274b80; }
-.formation-defense { background: #d6f4e8; color: #176b52; }
-.formation-mixed { background: #ece3f7; color: #5e3478; }
+.pair-badges .formation-chip { position: relative; display: inline-block; padding: 2px 9px; border: 1px solid transparent; border-radius: 8px; font-size: 10px; font-weight: 700; line-height: 1.45; white-space: nowrap; }
+.formation-physical { background: #d63c35; color: #fff; }
+.formation-special { background: #2f66d6; color: #fff; }
+.formation-defense { background: #1f9d63; color: #fff; }
+.formation-mixed { background: #7b4bbf; color: #fff; }
 
 /* 右上角徽章：石盤等級數字（僅 >1 顯示）與超覺醒「超」標記共用同款黃底深字樣式。 */
 .pair-badges .field-chip, .pair-badges .formation-chip { position: relative; }
