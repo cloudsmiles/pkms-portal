@@ -5,8 +5,13 @@
   "scripts": {
     "build": "node scripts/build-data.mjs",
     "rank": "bash rank/run.sh",
+    "rank:login": "node scripts/rank-download.mjs --login",
+    "rank:download": "node scripts/rank-download.mjs",
     "fonts": "node scripts/fetch-font.mjs",
     "update": "git pull --recurse-submodules && git submodule update --remote --merge sync-grid && npm run build",
     "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.10.0"
   }
 }

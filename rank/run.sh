@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # 一条龙生成田鸡榜等级数据 rank/data.js 并合入 dist。
 # 用法：在 portal 根目录 `npm run rank`（或 bash rank/run.sh）。
+# 首次使用（或 cookie 过期）先跑一次 `npm run rank:login` 登入騰訊文件；
+# 想沿用手動放入的本地榜單、跳過下載可設 SKIP_RANK_DOWNLOAD=1。
 #
 # 管线：
+#   0. rank-download.mjs（需 puppeteer-core + 系統 Chrome）自動下載最新榜單 xlsx
 #   1. npm run build                         先生成 dist/data.js（拍组属性真值，匹配要读它）
 #   2. extract_features.py（系统 python3+PIL）从榜单 xlsx 抽头像 + 框色/属性特征
 #   3. match_pairs.py（需 torch/numpy<2）     ResNet50 深度特征把头像匹配到 ★6ex 图库
@@ -20,9 +23,23 @@ cd "$PORTAL_DIR"
 SYS_PYTHON="${PYTHON:-python3}"
 XLSX="$RANK_DIR/榜单.xlsx"
 
+# 0. 自動從騰訊文件下載最新榜單（設 SKIP_RANK_DOWNLOAD=1 可沿用本地舊檔）。
+if [ "${SKIP_RANK_DOWNLOAD:-0}" != "1" ]; then
+  echo "==> [0/5] rank-download：從騰訊文件下載最新榜單"
+  if ! (cd "$PORTAL_DIR" && node scripts/rank-download.mjs); then
+    if [ -f "$XLSX" ]; then
+      echo "! 榜單下載失敗，沿用本地既有檔案：$XLSX" >&2
+      echo "  要更新請先執行 npm run rank:login 重新登入。" >&2
+    else
+      echo "✗ 榜單下載失敗且本地無舊檔。請執行 npm run rank:login 完成登入後重跑。" >&2
+      exit 1
+    fi
+  fi
+fi
+
 if [ ! -f "$XLSX" ]; then
   echo "✗ 缺少源榜单：$XLSX" >&2
-  echo "  请把最新的榜单 xlsx 放到该路径（文件名固定为 榜单.xlsx）后重试。" >&2
+  echo "  请执行 npm run rank:login 登入后重跑，或手动把榜单 xlsx 放到该路径。" >&2
   exit 1
 fi
 
