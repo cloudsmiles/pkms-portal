@@ -2,7 +2,7 @@ import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parsePairEffects, parseEventRecords } from './parse-data.mjs';
+import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parsePairEffects, parsePairForms, parseEventRecords } from './parse-data.mjs';
 import { getProjectDir } from './project-path.mjs';
 
 const portalDir = resolve(import.meta.dirname, '..');
@@ -113,9 +113,9 @@ export async function build() {
       const grid = await readFile(resolve(projectDir, pair.href.replace(/^\.\//, '')), 'utf8');
       const exImageName = exIcons.get(pair.name.normalize('NFKC'));
       const { fieldEffects, formations } = parsePairEffects(grid);
-      return { ...pair, rank, attributes: parsePairAttributes(grid), role: parsePairRole(grid), limitedTag: parsePairLimitedTag(grid), fieldEffects, formations, exImage: exImageName ? `./icons/${exImageName}` : '', baseTotal: parsePairBaseTotal(grid) };
+      return { ...pair, rank, attributes: parsePairAttributes(grid), role: parsePairRole(grid), limitedTag: parsePairLimitedTag(grid), fieldEffects, formations, forms: parsePairForms(grid), exImage: exImageName ? `./icons/${exImageName}` : '', baseTotal: parsePairBaseTotal(grid) };
     } catch {
-      return { ...pair, rank, attributes: [], role: '', limitedTag: '', fieldEffects: [], formations: [], exImage: '', baseTotal: 0 };
+      return { ...pair, rank, attributes: [], role: '', limitedTag: '', fieldEffects: [], formations: [], forms: [], exImage: '', baseTotal: 0 };
     }
   }));
   enrichedPairs.sort((left, right) => right.baseTotal - left.baseTotal || left.name.localeCompare(right.name));

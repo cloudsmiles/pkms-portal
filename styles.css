@@ -7,7 +7,7 @@ button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 .page-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
 /* 滿版照片底：頂部清晰 cover，進入分頁／工具列區後轉模糊，並在拍組圖鑑標題前淡出色票底色。 */
-.site-banner { position: relative; isolation: isolate; }
+.site-banner { position: relative; z-index: 20; isolation: isolate; }
 .site-banner > * { position: relative; z-index: 1; }
 .site-banner::before { content: ''; position: absolute; inset: 0; z-index: 0; background: url('./assets/salina.jpeg') center top/cover no-repeat; filter: blur(26px) saturate(1.08); opacity: .75; -webkit-mask-image: linear-gradient(180deg, transparent 40%, rgba(0,0,0,.42) 66%, rgba(0,0,0,.5) 84%, rgba(0,0,0,.2) 95%, transparent 100%); mask-image: linear-gradient(180deg, transparent 40%, rgba(0,0,0,.42) 66%, rgba(0,0,0,.5) 84%, rgba(0,0,0,.2) 95%, transparent 100%); }
 .site-banner::after { content: ''; position: absolute; inset: 0; z-index: 0; background: linear-gradient(180deg, rgba(244,250,247,.05) 38%, rgba(244,250,247,.3) 68%, rgba(244,250,247,.62) 88%, var(--bg) 100%), url('./assets/salina.jpeg') center top/cover no-repeat; -webkit-mask-image: linear-gradient(180deg, #000 58%, rgba(0,0,0,.85) 78%, rgba(0,0,0,.4) 93%, transparent 100%); mask-image: linear-gradient(180deg, #000 58%, rgba(0,0,0,.85) 78%, rgba(0,0,0,.4) 93%, transparent 100%); }
@@ -107,6 +107,23 @@ h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
 .pair-card:has(.pair-art-ex):hover .pair-art-main,
 .pair-card:has(.pair-art-ex):focus-within .pair-art-main { animation: art-breathe 2.8s ease-in-out infinite; }
 @keyframes art-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+/* 特殊形態圖示（超級進化／極巨化／太晶化）：右下角平時淡顯，懸浮卡片時全亮，
+   疊上各自代表色的呼吸光暈與輕微縮放，多圖示錯開節奏。 */
+.pair-forms { position: absolute; right: 7px; bottom: 7px; z-index: 3; display: flex; gap: 4px; }
+.pair-form-icon { width: 25px; height: 25px; object-fit: contain; opacity: .45; transition: opacity .35s ease; filter: drop-shadow(0 0 2px rgba(255,255,255,.75)); }
+.pair-form-icon.form-mega { --form-glow: rgba(192,77,245,.95); }
+.pair-form-icon.form-dyna { --form-glow: rgba(244,42,105,.95); }
+.pair-form-icon.form-tera { --form-glow: rgba(56,189,248,.95); }
+.pair-card:hover .pair-form-icon,
+.pair-card:focus-within .pair-form-icon { opacity: 1; animation: form-breathe 2.4s ease-in-out infinite; }
+.pair-card:hover .pair-form-icon:nth-child(2),
+.pair-card:focus-within .pair-form-icon:nth-child(2) { animation-delay: .18s; }
+.pair-card:hover .pair-form-icon:nth-child(3),
+.pair-card:focus-within .pair-form-icon:nth-child(3) { animation-delay: .36s; }
+@keyframes form-breathe {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px var(--form-glow)); }
+  50% { transform: scale(1.12); filter: drop-shadow(0 0 5px var(--form-glow)) drop-shadow(0 0 10px var(--form-glow)); }
+}
 .pair-meta { padding: 13px 14px 15px; border-top: 1px solid var(--line); background: #fff; }
 .pair-category { color: var(--orange); font-size: 11px; }
 .pair-name { display: block; margin-top: 7px; font-family: 'Zen Maru Gothic', 'PingFang TC', sans-serif; font-size: 14px; line-height: 1.55; font-weight: 700; }
@@ -139,7 +156,9 @@ h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
 .pair-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .pair-role, .attribute-chip { display: inline-block; padding: 2px 9px; border: 1px solid transparent; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
 .pair-role { color: #fff; border-color: transparent; background: #0f8a5f; }
-.pair-role.physical { color: #fff; border-color: transparent; background: #2f66d6; }
+.pair-role.physical { color: #fff; border-color: transparent; background: #d63c35; }
+.pair-role.special { color: #fff; border-color: transparent; background: #2f66d6; }
+.pair-role.mixed { color: #fff; border-color: transparent; background: #7b4bbf; }
 .attribute-chip { border-color: transparent; }
 /* 屬性色：Material 風格飽和實心 chip（與場效晶片、篩選色點同一套色票，文字依明度配深墨或白）。*/
 .pair-badges .attribute-chip.attribute-0 { background: #969493; color: #202b29; }
@@ -269,6 +288,7 @@ body { font-size: var(--portal-body-size); }
   .pair-meta { padding: 9px 10px 11px; }
   .pair-name { line-height: 1.5; }
   .pair-badges { gap: 4px; margin-top: 8px; }
+  .pair-form-icon { width: 21px; height: 21px; }
   .pair-role, .attribute-chip, .field-chip { padding: 2px 5px; font-size: 9px; }
   .event-visual { height: clamp(150px, 43vw, 190px); }
   .event-info { padding: 14px; }
@@ -314,7 +334,7 @@ body { font-size: var(--portal-body-size); }
 .field-terrain-electric { color: #3d3500; background: #f2d94b; }
 .field-terrain-grassy { color: #123a1a; background: #7fc96a; }
 .field-terrain-psychic { color: #4a1238; background: #e88fd0; }
-.pair-badges .field-chip.is-ex { border-color: #e8cf7a; background: #fdf0c8; color: #7a5b00; }
+.pair-badges .field-chip.is-ex { border-color: #f2c94c; box-shadow: 0 0 0 1px rgba(242,201,76,.25), 0 0 8px rgba(242,201,76,.55); }
 
 /* 鬥陣晶片：顯示完整「地區鬥陣（類別）」，顏色依類別（物攻／特攻／防禦）區分。 */
 .pair-badges .formation-chip { position: relative; display: inline-block; padding: 2px 9px; border: 1px solid transparent; border-radius: 8px; font-size: 10px; font-weight: 700; line-height: 1.45; white-space: nowrap; }

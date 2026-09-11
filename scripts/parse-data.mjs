@@ -159,6 +159,21 @@ export function parsePairFieldEffects(html) {
   return parsePairEffects(html).fieldEffects;
 }
 
+// 特殊形態：偵測訊號與詳情頁 overrides/detail-ui.js 的 FORM_BADGES 判定一致。
+// 超級進化看第二個以上頁籤名（第一頁籤是基本形態）；極巨化／太晶化看內文關鍵字。
+const FORM_DETECTORS = [
+  ['mega', (html, text) => [...html.matchAll(/<ul[^>]*class="[^"]*\btab\b[^"]*"[^>]*>([\s\S]*?)<\/ul>/gi)]
+    .some((list) => [...list[1].matchAll(/<li[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/gi)].slice(1)
+      .some((tab) => stripTags(tab[1]).startsWith('超級')))],
+  ['dyna', (_html, text) => text.includes('拍組極巨化招式')],
+  ['tera', (_html, text) => text.includes('太晶')],
+];
+
+export function parsePairForms(html) {
+  const text = stripTags(html);
+  return FORM_DETECTORS.filter(([, detect]) => detect(html, text)).map(([form]) => form);
+}
+
 export function parsePairLimitedTag(html) {
   const title = html.match(/<th[^>]*>([\s\S]*?)<\/th>/i)?.[1];
   const plainTitle = title ? stripTags(title).replace(/\s+/g, ' ') : '';

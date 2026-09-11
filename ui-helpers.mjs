@@ -58,6 +58,14 @@ export function getPairRoleLabel(role) {
   return '';
 }
 
+// 角色晶片配色 tone，與鬥陣晶片 formation-* 色票一致（物攻紅、特攻藍、雙攻紫）。
+export function pairRoleTone(role) {
+  if (role === '物理攻擊型') return 'physical';
+  if (role === '特殊攻擊型') return 'special';
+  if (role === '雙攻型') return 'mixed';
+  return '';
+}
+
 export function getPairLimitedTags(pairs) {
   return [...new Set(pairs.map((pair) => pair.limitedTag).filter(Boolean))].sort((left, right) => left.localeCompare(right, 'zh'));
 }

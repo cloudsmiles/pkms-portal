@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parsePairFieldEffects, parsePairEffects, parseEventRecords, getEventStatus } from '../scripts/parse-data.mjs';
+import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parsePairFieldEffects, parsePairEffects, parsePairForms, parseEventRecords, getEventStatus } from '../scripts/parse-data.mjs';
 import { getProjectDir } from '../scripts/project-path.mjs';
 import { injectDetailAssets } from '../scripts/build-data.mjs';
 
@@ -196,6 +196,36 @@ test('日照強烈的狀態正規化為 sun 且四種天氣三種場地都能解
     { kind: 'weather', code: 'hail', ex: false, gridLevel: null },
     { kind: 'terrain', code: 'grassy', ex: false, gridLevel: null }
   ]);
+});
+
+test('第二個以上頁籤以「超級」開頭判斷為超級進化形態', () => {
+  const mega = '<ul class="tab"><li><a href="#content1">超夢</a></li><li><a href="#content2">超級超夢Y</a></li></ul>';
+  assert.deepEqual(parsePairForms(mega), ['mega']);
+
+  // 第一頁籤就是唯一頁籤且名含「超級」不算（例：名為「超級能量」的一般拍組）。
+  const single = '<ul class="tab"><li><a href="#content1">超級噴火龍</a></li></ul>';
+  assert.deepEqual(parsePairForms(single), []);
+});
+
+test('內文含拍組極巨化招式判斷為極巨化形態', () => {
+  const dyna = '<table class="move"><tr><td>拍組極巨化招式</td><td>超極巨天道七星</td></tr></table>';
+  assert.deepEqual(parsePairForms(dyna), ['dyna']);
+});
+
+test('內文含太晶判斷為太晶化形態', () => {
+  const tera = '<table class="move"><tr><td>拍組太晶招式</td><td>太晶爆發</td></tr></table>';
+  assert.deepEqual(parsePairForms(tera), ['tera']);
+});
+
+test('三形態並存時依 mega／dyna／tera 固定順序回傳，無訊號回空陣列', () => {
+  const all = [
+    '<ul class="tab"><li><a href="#content1">寶可夢</a></li><li><a href="#content2">超級進化</a></li></ul>',
+    '<table class="move"><tr><td>拍組極巨化招式</td><td>極巨攻擊</td></tr></table>',
+    '<table class="move"><tr><td>拍組太晶招式</td><td>太晶化</td></tr></table>'
+  ].join('');
+  assert.deepEqual(parsePairForms(all), ['mega', 'dyna', 'tera']);
+
+  assert.deepEqual(parsePairForms('<table class="move"><tr><td>寶可夢招式</td><td>撞擊</td></tr></table>'), []);
 });
 
 test('從等級表計算Lv.200六項白值總和', () => {
