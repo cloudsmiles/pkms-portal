@@ -53,6 +53,33 @@
   // 訓練家招式舊色票 #6dbfb1 濁且淡，統一換成飽和 teal。
   const moveHex = (hex) => (hex.toLowerCase() === '#6dbfb1' ? '#0d9488' : hex);
 
+  // 招式名後的 ▭▭▭（U+25AD）代表使用次數，換成天藍色膠囊能量條。
+  function tagMoveUses(table) {
+    const walker = document.createTreeWalker(table, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) => (node.nodeValue.includes('▭') && !node.parentElement.closest('input,button')
+        ? NodeFilter.FILTER_ACCEPT
+        : NodeFilter.FILTER_REJECT),
+    });
+    const targets = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) targets.push(node);
+    targets.forEach((node) => {
+      const parts = node.nodeValue.split(/(▭+)/).filter(Boolean);
+      const fragment = document.createDocumentFragment();
+      parts.forEach((part) => {
+        if (!part.startsWith('▭')) {
+          fragment.append(document.createTextNode(part));
+          return;
+        }
+        const bar = document.createElement('span');
+        bar.className = 'move-uses';
+        bar.setAttribute('aria-label', `需要能量 ${part.length} 格`);
+        for (let i = 0; i < part.length; i += 1) bar.append(document.createElement('i'));
+        fragment.append(bar);
+      });
+      node.replaceWith(fragment);
+    });
+  }
+
   // 把被動表格的第一行（技能名）包成 .passive-name 以利上色。
   function emphasizeFirstLine(table) {
     const cell = table.querySelector('td');
@@ -141,6 +168,7 @@
     });
     // 未加框的一般招式：抽出屬性色當 --c，表頭列實心、標籤欄淡色調。
     panel.querySelectorAll('table.move').forEach((table) => {
+      tagMoveUses(table);
       const rawHex = readInlineHex(table);
       const hex = moveHex(rawHex);
       table.style.backgroundColor = '';
@@ -208,6 +236,16 @@
       table.replaceWith(generated);
     });
   }
+  // 所有表格包一層橫向捲動外殼：窄視窗由外殼捲動，表格本身維持 width:100%
+  // 填滿邊框，內容過寬才出現捲軸（避免 display:block 表格收縮留白）。
+  content.querySelectorAll('table').forEach((table) => {
+    if (table.parentElement?.classList.contains('table-scroll')) return;
+    const scroll = document.createElement('div');
+    scroll.className = 'table-scroll';
+    table.before(scroll);
+    scroll.append(table);
+  });
+
   if (grid) grid.before(back);
 
   // 明確管理內容 Tab，避免不同瀏覽器對 :target 初始狀態處理不一致。
