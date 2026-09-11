@@ -3,11 +3,15 @@ import { sourcePath } from './web-path.mjs';
 
 (() => {
   const data = window.SYNC_GRID_DATA || { pairs: [], events: [] };
+  // 兩個分頁的篩選完全獨立、各自保存：切換分頁時換掉 state 指向，不互相覆寫。
   // 多選篩選以陣列保存選中值（空陣列＝全部）；其餘維持單值 'all'。
-  const DEFAULT_STATE = { tab: 'pairs', query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], formation: [], date: 'all', status: 'all', sort: 'base-desc', page: 1, pageSize: 12 };
-  const state = { ...DEFAULT_STATE, category: [], attribute: [], rank: [], limitedTag: [], fieldEffect: [], formation: [] };
+  const createView = (tab) => (tab === 'events'
+    ? { query: '', date: 'all', status: 'all', page: 1 }
+    : { query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], formation: [], sort: 'base-desc', page: 1 });
+  const views = { pairs: createView('pairs'), events: createView('events') };
+  const shared = { tab: 'pairs', pageSize: 12 };
+  let state = views.pairs;
   const MULTI_STATE_KEYS = ['category', 'attribute', 'rank', 'limitedTag', 'fieldEffect', 'formation'];
-  const SINGLE_STATE_KEYS = [['role', 'all'], ['date', 'all'], ['status', 'all'], ['sort', 'base-desc']];
   const labels = { active: '進行中', upcoming: '即將開始', ended: '已結束' };
   const $ = (selector) => document.querySelector(selector);
   const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
@@ -22,19 +26,23 @@ import { sourcePath } from './web-path.mjs';
   const MULTI_FILTER_KEYS = new Set(['category', 'attribute', 'rank', 'limitedTag', 'fieldEffect', 'formation']);
   const stateKeyOf = (filter) => FILTER_STATE_KEY[filter] ?? filter;
 
-  // URL 即狀態：篩選/分頁可分享、重新整理後保留，瀏覽器上一頁也能回到上組條件。
+  // URL 即狀態：只帶目前分頁的篩選，兩個分頁網址自然互不污染、可分享且重新整理後保留。
   function writeStateToUrl() {
     const params = new URLSearchParams();
-    if (state.tab !== 'pairs') params.set('tab', state.tab);
+    if (shared.tab !== 'pairs') params.set('tab', shared.tab);
     if (state.query.trim()) params.set('q', state.query.trim());
-    for (const key of MULTI_STATE_KEYS) {
-      if (state[key].length) params.set(key, state[key].join(','));
-    }
-    for (const [key, fallback] of SINGLE_STATE_KEYS) {
-      if (state[key] !== fallback) params.set(key, state[key]);
+    if (shared.tab === 'pairs') {
+      for (const key of MULTI_STATE_KEYS) {
+        if (state[key].length) params.set(key, state[key].join(','));
+      }
+      if (state.role !== 'all') params.set('role', state.role);
+      if (state.sort !== 'base-desc') params.set('sort', state.sort);
+    } else {
+      if (state.date !== 'all') params.set('date', state.date);
+      if (state.status !== 'all') params.set('status', state.status);
     }
     if (state.page !== 1) params.set('page', String(state.page));
-    if (state.pageSize !== 12) params.set('pageSize', String(state.pageSize));
+    if (shared.pageSize !== 12) params.set('pageSize', String(shared.pageSize));
     const query = params.toString();
     history.replaceState(null, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash}`);
   }
@@ -43,10 +51,23 @@ import { sourcePath } from './web-path.mjs';
   const validSingle = (value, id) => (value != null && optionValues(id).includes(value) ? value : null);
 
   function readStateFromUrl() {
-    Object.assign(state, DEFAULT_STATE, { category: [], attribute: [], rank: [], limitedTag: [], fieldEffect: [], formation: [] });
     const params = new URLSearchParams(location.search);
-    state.tab = params.get('tab') === 'events' ? 'events' : 'pairs';
+    shared.tab = params.get('tab') === 'events' ? 'events' : 'pairs';
+    // 兩個視圖都重建為預設值，只把 URL（必定屬於當前分頁）的參數灌進當前視圖。
+    views.pairs = createView('pairs');
+    views.events = createView('events');
+    state = views[shared.tab];
     state.query = params.get('q') ?? '';
+    const pageSize = Number(params.get('pageSize'));
+    if ([12, 24, 48].includes(pageSize)) shared.pageSize = pageSize;
+    const page = Number(params.get('page'));
+    if (Number.isInteger(page) && page >= 1) state.page = page;
+    if (shared.tab === 'events') {
+      const date = validSingle(params.get('date'), 'date-filter');
+      if (date) state.date = date;
+      if (['active', 'upcoming', 'ended'].includes(params.get('status'))) state.status = params.get('status');
+      return;
+    }
     const multiFilterId = { category: 'category-filter', attribute: 'attribute-filter', rank: 'rank-filter', limitedTag: 'limited-tag-filter', fieldEffect: 'field-effect-filter', formation: 'formation-filter' };
     for (const key of MULTI_STATE_KEYS) {
       const raw = params.get(key);
@@ -57,46 +78,40 @@ import { sourcePath } from './web-path.mjs';
     }
     const role = validSingle(params.get('role'), 'role-filter');
     if (role) state.role = role;
-    const date = validSingle(params.get('date'), 'date-filter');
-    if (date) state.date = date;
-    if (['active', 'upcoming', 'ended'].includes(params.get('status'))) state.status = params.get('status');
     const sort = validSingle(params.get('sort'), 'sort-filter');
     if (sort) state.sort = sort;
-    const pageSize = Number(params.get('pageSize'));
-    if ([12, 24, 48].includes(pageSize)) state.pageSize = pageSize;
-    const page = Number(params.get('page'));
-    if (Number.isInteger(page) && page >= 1) state.page = page;
   }
 
   // 多選自訂選單直接讀 state；單選仍是原生 select，URL/前進後退後需把 DOM 對齊 state。
   function syncDomFromState() {
     $('#search').value = state.query;
-    $('#role-filter').value = state.role;
-    $('#status-filter').value = state.status;
-    $('#date-filter').value = state.date;
-    $('#sort-filter').value = state.sort;
-    $('#page-size').value = String(state.pageSize);
-    document.querySelectorAll('.tab').forEach((button) => button.classList.toggle('is-active', button.dataset.tab === state.tab));
+    if (state.role != null) $('#role-filter').value = state.role;
+    if (state.status != null) $('#status-filter').value = state.status;
+    if (state.date != null) $('#date-filter').value = state.date;
+    if (state.sort != null) $('#sort-filter').value = state.sort;
+    $('#page-size').value = String(shared.pageSize);
+    document.querySelectorAll('.tab').forEach((button) => button.classList.toggle('is-active', button.dataset.tab === shared.tab));
   }
 
   function filteredRecords() {
+    const tab = shared.tab;
     const query = state.query.trim().toLocaleLowerCase();
-    const records = state.tab === 'pairs' ? data.pairs : data.events;
+    const records = tab === 'pairs' ? data.pairs : data.events;
     const filtered = records.filter((record) => {
-      const text = state.tab === 'pairs' ? `${record.name} ${record.category} ${record.limitedTag || ''}` : `${record.title} ${record.description}`;
+      const text = tab === 'pairs' ? `${record.name} ${record.category} ${record.limitedTag || ''}` : `${record.title} ${record.description}`;
       const matchesQuery = !query || text.toLocaleLowerCase().includes(query);
-      const matchesCategory = state.tab === 'events' || state.category.length === 0 || state.category.includes(record.category);
-      const matchesAttribute = state.tab === 'events' || state.attribute.length === 0 || record.attributes?.some((attribute) => state.attribute.includes(attribute));
-      const matchesRole = state.tab === 'events' || state.role === 'all' || matchesPairRole(record, state.role);
-      const matchesRank = state.tab === 'events' || state.rank.length === 0 || state.rank.includes(String(record.rank));
-      const matchesLimitedTag = state.tab === 'events' || state.limitedTag.length === 0 || state.limitedTag.includes(record.limitedTag);
-      const hasFieldEffect = state.tab === 'events' || matchesFieldEffectSelection(record, state.fieldEffect);
-      const hasFormation = state.tab === 'events' || matchesFormationSelection(record, state.formation);
-      const matchesDate = state.tab === 'pairs' || state.date === 'all' || record.start.slice(0, 10) === state.date;
-      const matchesStatus = state.tab === 'pairs' || state.status === 'all' || eventStatus(record) === state.status;
+      const matchesCategory = tab === 'events' || state.category.length === 0 || state.category.includes(record.category);
+      const matchesAttribute = tab === 'events' || state.attribute.length === 0 || record.attributes?.some((attribute) => state.attribute.includes(attribute));
+      const matchesRole = tab === 'events' || state.role === 'all' || matchesPairRole(record, state.role);
+      const matchesRank = tab === 'events' || state.rank.length === 0 || state.rank.includes(String(record.rank));
+      const matchesLimitedTag = tab === 'events' || state.limitedTag.length === 0 || state.limitedTag.includes(record.limitedTag);
+      const hasFieldEffect = tab === 'events' || matchesFieldEffectSelection(record, state.fieldEffect);
+      const hasFormation = tab === 'events' || matchesFormationSelection(record, state.formation);
+      const matchesDate = tab === 'pairs' || state.date === 'all' || record.start.slice(0, 10) === state.date;
+      const matchesStatus = tab === 'pairs' || state.status === 'all' || eventStatus(record) === state.status;
       return matchesQuery && matchesCategory && matchesAttribute && matchesRole && matchesRank && matchesLimitedTag && hasFieldEffect && hasFormation && matchesDate && matchesStatus;
     });
-    return state.tab === 'pairs' ? sortPairs(filtered, state.sort) : filtered;
+    return tab === 'pairs' ? sortPairs(filtered, state.sort) : filtered;
   }
 
   const imageMarkup = (image, alt) => image
@@ -116,7 +131,7 @@ import { sourcePath } from './web-path.mjs';
   const formationChip = (form) => `<span class="formation-chip formation-${formationTone(form.category)}">${escapeHtml(getFormationLabel(form.region, form.category))}${gridLevelBadge(form.gridLevel)}</span>`;
 
   function renderCard(record) {
-    if (state.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}${location.search ? `?back=${encodeURIComponent(location.search)}` : ''}"><div class="pair-art">${imageMarkup(record.image, record.name)}${exToggleMarkup(record)}</div><div class="pair-meta"><span class="pair-topline">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}${record.rank != null ? `<span class="pair-rank rank-fam-${rankFamily(record.rank)}" title="田雞榜等級">${getRankTierLabel(record.rank)}</span>` : ''}</span><span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${record.role === '物理攻擊型' ? 'physical' : 'special'}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}${(record.fieldEffects ?? []).map(fieldEffectChip).join('')}${(record.formations ?? []).map(formationChip).join('')}</div></div></a></article>`;
+    if (shared.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}${location.search ? `?back=${encodeURIComponent(location.search)}` : ''}"><div class="pair-art">${imageMarkup(record.image, record.name)}${exToggleMarkup(record)}</div><div class="pair-meta"><span class="pair-topline">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}${record.rank != null ? `<span class="pair-rank rank-fam-${rankFamily(record.rank)}" title="田雞榜等級">${getRankTierLabel(record.rank)}</span>` : ''}</span><span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${record.role === '物理攻擊型' ? 'physical' : 'special'}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}${(record.fieldEffects ?? []).map(fieldEffectChip).join('')}${(record.formations ?? []).map(formationChip).join('')}</div></div></a></article>`;
     const status = eventStatus(record);
     return `<article class="event-card"><div class="event-visual">${record.image ? imageMarkup(record.image, record.title) : '<div class="event-art-empty" aria-hidden="true"></div>'}</div><div class="event-info"><div class="event-dates">${formatDate(record.start)} — ${formatDate(record.end)}<span class="event-status ${status}">${labels[status]}</span></div><h3 class="event-title">${escapeHtml(record.title)}</h3><p class="event-desc">${escapeHtml(record.description || '暫無活動說明')}</p></div></article>`;
   }
@@ -210,8 +225,10 @@ import { sourcePath } from './web-path.mjs';
     if (state.query.trim()) push('query', state.query, `「${state.query.trim()}」`);
     for (const key of ['category', 'attribute', 'role', 'rank', 'limitedTag', 'fieldEffect', 'formation', 'date', 'status']) {
       const value = state[key];
-      if (Array.isArray(value)) value.forEach((item) => push(key, item, getFilterOptionLabel(key, item)));
-      else if (value && value !== 'all') push(key, value, getFilterOptionLabel(key, value));
+      if (value == null) continue;
+      const labelOf = (item) => (key === 'status' ? labels[item] : getFilterOptionLabel(key, item));
+      if (Array.isArray(value)) value.forEach((item) => push(key, item, labelOf(item)));
+      else if (value && value !== 'all') push(key, value, labelOf(value));
     }
     $('#clear-filters').textContent = getActiveFilterCount(state) ? `清除篩選（${getActiveFilterCount(state)}）` : '清除篩選';
     $('#active-filters').innerHTML = chips.length
@@ -221,9 +238,9 @@ import { sourcePath } from './web-path.mjs';
 
   function render() {
     const records = filteredRecords();
-    const totalPages = Math.max(1, Math.ceil(records.length / state.pageSize));
+    const totalPages = Math.max(1, Math.ceil(records.length / shared.pageSize));
     state.page = Math.min(state.page, totalPages);
-    const visible = records.slice((state.page - 1) * state.pageSize, state.page * state.pageSize);
+    const visible = records.slice((state.page - 1) * shared.pageSize, state.page * shared.pageSize);
     $('#content').innerHTML = visible.map(renderCard).join('');
     $('#content').querySelectorAll('.ex-toggle').forEach((button) => button.addEventListener('click', (event) => {
       event.preventDefault();
@@ -237,10 +254,10 @@ import { sourcePath } from './web-path.mjs';
       button.setAttribute('aria-label', button.title);
     }));
     $('#empty').hidden = records.length > 0;
-    $('#result-summary').textContent = `顯示 ${records.length ? (state.page - 1) * state.pageSize + 1 : 0}–${Math.min(state.page * state.pageSize, records.length)} 筆，共 ${records.length} 筆`;
+    $('#result-summary').textContent = `顯示 ${records.length ? (state.page - 1) * shared.pageSize + 1 : 0}–${Math.min(state.page * shared.pageSize, records.length)} 筆，共 ${records.length} 筆`;
     renderPagination(totalPages);
-    $('#section-title').textContent = state.tab === 'pairs' ? '拍組圖鑑' : '活動日志';
-    $('#section-kicker').textContent = state.tab === 'pairs' ? 'PAIR INDEX' : 'EVENT LOG';
+    $('#section-title').textContent = shared.tab === 'pairs' ? '拍組圖鑑' : '活動日志';
+    $('#section-kicker').textContent = shared.tab === 'pairs' ? 'PAIR INDEX' : 'EVENT LOG';
     document.querySelectorAll('.custom-select').forEach((control) => {
       const stateKey = stateKeyOf(control.dataset.filter);
       const value = state[stateKey];
@@ -251,24 +268,34 @@ import { sourcePath } from './web-path.mjs';
     renderActiveFilters();
     document.querySelectorAll('.pair-only').forEach((control) => {
       const isPairToolbarControl = ['sort', 'limited'].includes(control.dataset.filter);
-      control.hidden = state.tab !== 'pairs' || (!isPairToolbarControl && !getViewFilters(state.tab).includes(control.dataset.filter));
+      control.hidden = shared.tab !== 'pairs' || (!isPairToolbarControl && !getViewFilters(shared.tab).includes(control.dataset.filter));
     });
-    document.querySelectorAll('.event-only').forEach((control) => { control.hidden = !getViewFilters(state.tab).includes(control.dataset.filter); });
+    document.querySelectorAll('.event-only').forEach((control) => { control.hidden = !getViewFilters(shared.tab).includes(control.dataset.filter); });
     writeStateToUrl();
   }
 
-  function setTab(tab) { state.tab = tab; state.page = 1; document.querySelectorAll('.tab').forEach((button) => button.classList.toggle('is-active', button.dataset.tab === tab)); render(); }
+  function setTab(tab) {
+    if (shared.tab === tab) return;
+    shared.tab = tab;
+    state = views[tab];
+    syncDomFromState();
+    render();
+  }
   document.querySelectorAll('.tab').forEach((button) => button.addEventListener('click', () => setTab(button.dataset.tab)));
   $('#search').addEventListener('input', (event) => { state.query = event.target.value; state.page = 1; render(); });
   $('#role-filter').addEventListener('change', (event) => { state.role = event.target.value; state.page = 1; render(); });
   $('#status-filter').addEventListener('change', (event) => { state.status = event.target.value; state.page = 1; render(); });
   $('#date-filter').addEventListener('change', (event) => { state.date = event.target.value; state.page = 1; render(); });
-  $('#page-size').addEventListener('change', (event) => { state.pageSize = Number(event.target.value); state.page = 1; render(); });
+  $('#page-size').addEventListener('change', (event) => { shared.pageSize = Number(event.target.value); state.page = 1; render(); });
   $('#sort-filter').addEventListener('change', (event) => { state.sort = event.target.value; state.page = 1; render(); });
   $('#clear-filters').addEventListener('click', () => {
-    Object.assign(state, DEFAULT_STATE, { category: [], attribute: [], rank: [], limitedTag: [], fieldEffect: [], formation: [] });
+    views[shared.tab] = createView(shared.tab);
+    state = views[shared.tab];
     $('#search').value = '';
-    ['role-filter', 'date-filter', 'status-filter', 'sort-filter'].forEach((id) => { $(`#${id}`).value = id === 'sort-filter' ? 'base-desc' : 'all'; });
+    ['role-filter', 'date-filter', 'status-filter', 'sort-filter'].forEach((id) => {
+      const control = $(`#${id}`);
+      if (!control.hidden) control.value = id === 'sort-filter' ? 'base-desc' : 'all';
+    });
     render();
   });
   $('#toolbar').addEventListener('click', (event) => {

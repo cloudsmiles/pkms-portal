@@ -205,6 +205,7 @@ export function getFilterOptionLabel(filter, value) {
     'rank-desc': '等級高→低', 'rank-asc': '等級低→高',
   }[value] || value;
   if (filter === 'pageSize') return `${value} 筆`;
+  if (filter === 'status') return { active: '進行中', upcoming: '即將開始', ended: '已結束' }[value] ?? value;
   return value;
 }
 

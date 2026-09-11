@@ -275,8 +275,6 @@ body { font-size: var(--portal-body-size); }
   .hero-inner { grid-template-columns: 48px 1fr; gap: 12px; min-height: 190px; width: calc(100% - 16px); }
   .hero-mark { width: 48px; height: 48px; font-size: 16px; }
   .hero-note { font-size: 11px; }
-  .select-box, .custom-select { flex-basis: 100%; }
-  .clear-filters { flex-basis: 100%; }
   .content-grid { grid-template-columns: 1fr 1fr; }
   .pair-card, .event-card { border-radius: 14px; box-shadow: 0 3px 8px rgba(31,74,61,.08); }
   .event-card { grid-column: span 2; }
