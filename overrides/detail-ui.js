@@ -33,6 +33,40 @@
 
   const SUPER_AWAKENING_PREFIX = '超覺醒被動技能';
 
+  // 舊版頁面用內嵌 hex（含 alpha 的 8 碼）標色；抽出 6 碼原色，剝離時一併清掉。
+  const readInlineHex = (element) => element.getAttribute('style')?.match(/#([0-9a-f]{6})/i)?.[1]
+    ? `#${element.getAttribute('style').match(/#([0-9a-f]{6})/i)[1]}`
+    : '';
+
+  // WCAG 相對亮度決定飽和底上用白字還是深墨字（Material 對比做法）。
+  function inkFor(hex) {
+    const value = parseInt(hex.slice(1), 16);
+    const channels = [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+    const linear = channels.map((channel) => {
+      const srgb = channel / 255;
+      return srgb <= 0.03928 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+    });
+    const luminance = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+    return luminance > 0.34 ? '#263238' : '#ffffff';
+  }
+
+  // 訓練家招式舊色票 #6dbfb1 濁且淡，統一換成飽和 teal。
+  const moveHex = (hex) => (hex.toLowerCase() === '#6dbfb1' ? '#0d9488' : hex);
+
+  // 把被動表格的第一行（技能名）包成 .passive-name 以利上色。
+  function emphasizeFirstLine(table) {
+    const cell = table.querySelector('td');
+    if (!cell || cell.querySelector('.passive-name')) return;
+    const firstBr = cell.querySelector('br');
+    const name = document.createElement('div');
+    name.className = 'passive-name';
+    if (firstBr) {
+      while (cell.firstChild && cell.firstChild !== firstBr) name.appendChild(cell.firstChild);
+      cell.insertBefore(name, firstBr);
+      firstBr.replaceWith(document.createTextNode(' '));
+    }
+  }
+
   // 超覺醒被動的表格原寫在潛能餅乾之後，視覺上會被當成潛能；先加上專屬樣式並移回被動段。
   function tagSuperAwakening(table) {
     const cell = table.querySelector('td');
@@ -52,10 +86,13 @@
     frame.className = `move-frame ${modifier}`;
     // 內聯底色是 8 碼 hex（屬性色＋透明度），取前 6 碼當外框融合色；移除內聯底色，
     // 否則半透明底色會讓框的漸層整片透進表格內容。
-    const bg = table.getAttribute('style')?.match(/background-color:\s*(#[0-9a-f]{6})/i)?.[1]
-      || table.style.backgroundColor;
+    const rawHex = readInlineHex(table);
+    const hex = moveHex(rawHex);
     table.style.backgroundColor = '';
-    if (bg) frame.style.setProperty('--move-color', bg);
+    if (hex) {
+      frame.style.setProperty('--move-color', hex);
+      frame.style.setProperty('--move-ink', inkFor(hex));
+    }
     table.before(frame);
     frame.append(table);
   }
@@ -65,21 +102,25 @@
     if (!tables.length) return;
     const prefix = panel.id || `panel-${panelIndex}`;
 
-    // 被動表格先分類：一般被動（保留原有底色）／潛能餅乾（暖色）／超覺醒（彩虹）。
+    // 被動表格分類：一般（青）／同步被動（紫 #d18eff）／潛能餅乾（琥珀）／超覺醒（彩虹）。
     const passiveTables = tables.filter((table) => table.classList.contains('passive'));
     const isCookieTable = (table) => table.textContent.includes('潛能餅乾');
     let firstCookie = null;
     const superTables = [];
     passiveTables.forEach((table) => {
+      const hex = readInlineHex(table).toLowerCase();
+      table.style.backgroundColor = '';
       if (isCookieTable(table)) {
         table.classList.add('passive-cookie');
-        table.style.backgroundColor = '';
+        emphasizeFirstLine(table);
         firstCookie ??= table;
       } else if (table.textContent.trimStart().startsWith(SUPER_AWAKENING_PREFIX)) {
         table.classList.add('passive-super');
-        table.style.backgroundColor = '';
         tagSuperAwakening(table);
         superTables.push(table);
+      } else {
+        table.classList.add(hex === '#d18eff' ? 'passive-sync' : 'passive-general');
+        emphasizeFirstLine(table);
       }
     });
     // 維持原相對順序，把超覺醒被動移到餅乾表格之前（即被動能力段末端）。
@@ -98,6 +139,15 @@
       else if (label.startsWith('拍組招式')) frameMoveTable(table, 'frame-sync');
       else if (label.startsWith('同步招式')) frameMoveTable(table, 'frame-buddy');
     });
+    // 未加框的一般招式：抽出屬性色當 --c，表頭列實心、標籤欄淡色調。
+    panel.querySelectorAll('table.move').forEach((table) => {
+      const rawHex = readInlineHex(table);
+      const hex = moveHex(rawHex);
+      table.style.backgroundColor = '';
+      if (!rawHex || table.parentElement?.classList.contains('move-frame')) return;
+      table.style.setProperty('--c', hex);
+      table.style.setProperty('--ink', inkFor(hex));
+    });
     const teamTable = tables.find((table) => table.classList.contains('team'));
     if (teamTable) {
       addSection(teamTable, `${prefix}-tags`, '標籤');
@@ -114,12 +164,32 @@
         teamTable.after(exploreTable);
         addSection(exploreTable, `${prefix}-explore`, '探索特性');
       }
+      // 標籤格：屬性標籤（自訂色）→ 飽和實心 chip；其餘（地區／主題，#6dbfb1）→ teal tonal。
+      teamTable.querySelectorAll('td').forEach((cell) => {
+        const hex = readInlineHex(cell).toLowerCase();
+        cell.style.backgroundColor = '';
+        cell.querySelectorAll('br').forEach((br) => br.replaceWith(document.createTextNode(' ')));
+        if (hex && hex !== '#6dbfb1') {
+          cell.classList.add('tag-attr');
+          cell.style.setProperty('--c', hex);
+          cell.style.setProperty('--ink', inkFor(hex));
+        } else {
+          cell.classList.add('tag-generic');
+        }
+      });
     }
   });
 
   // 部分變化形態只提供能力值百分比，補算成完整等級表方便直接比較。
   const baseStats = [...content.querySelectorAll(':scope > div > table')].find((table) => table.querySelector('tr:first-child td')?.textContent.trim() === 'Lv.');
   if (baseStats) {
+    // 六維列舊式淡底色移除，改以飽和語意色標示標題儲存格。
+    const statTone = { ＨＰ: 'hp', 攻擊: 'attack', 防禦: 'defense', 特攻: 'spattack', 特防: 'spdefense', 速度: 'speed' };
+    [...baseStats.rows].forEach((row) => {
+      const label = row.cells[0]?.textContent.trim() ?? '';
+      row.style.background = '';
+      row.classList.add(statTone[label] ? `stat-${statTone[label]}` : 'stat-level');
+    });
     content.querySelectorAll(':scope > div > table').forEach((table) => {
       const percentageRows = [...table.rows].filter((row) => row.cells.length === 2 && /\d+%/.test(row.cells[1].textContent));
       if (percentageRows.length < 5 || percentageRows.length !== table.rows.length || table === baseStats || table.dataset.generatedStats) return;

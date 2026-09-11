@@ -207,43 +207,72 @@ td {
 tr:last-child td { border-bottom: 0; }
 td:last-child,
 th:last-child { border-right: 0; }
-th { color: #fff; background: var(--detail-accent-dark); font-weight: 700; }
+th { color: #fff; background: var(--detail-accent); font-weight: 700; letter-spacing: .02em; }
 
 .content > div > table:first-child td { text-align: center; font-weight: 700; }
-.content > div > table:first-child tr:nth-child(2) td { color: var(--detail-muted); background: #f3f8f7 !important; font-size: 12px; }
-.content > div > table:first-child tr:nth-child(3) td { color: var(--detail-accent-dark); background: #e7f5f1 !important; font-size: 16px; }
-.move td:first-child { width: 22%; color: var(--detail-muted); font-weight: 700; }
-.move td:nth-child(2) { font-weight: 500; }
+.content > div > table:first-child tr:nth-child(2) td { color: var(--detail-muted); background: #f4f8f7 !important; font-size: 12px; font-weight: 500; }
+.content > div > table:first-child tr:nth-child(3) td { color: var(--detail-ink); background: #fff !important; font-size: 16px; }
 
-/* 招式類型外框：拍組＝屬性深色、極巨化＝深紅、同步＝屬性色融合炫彩。 */
-.move-frame { margin: 0 0 14px; padding: 2.5px; border-radius: 11px; }
+/* 能力值：MD 數據表，標題儲存格用飽和語意色淡 tint，數值置中。 */
+tr[class^="stat-"] td { text-align: center; }
+tr.stat-level td { color: var(--detail-muted); background: #f2f6f5; font-weight: 700; }
+tr[class^="stat-"] td:first-child { font-weight: 800; background: color-mix(in srgb, var(--stat-c, #607d8b) 11%, #fff); color: var(--stat-c); }
+tr.stat-hp { --stat-c: #27a058; }
+tr.stat-attack { --stat-c: #e04e2b; }
+tr.stat-defense { --stat-c: #d97900; }
+tr.stat-spattack { --stat-c: #0288d1; }
+tr.stat-spdefense { --stat-c: #4f5fc9; }
+tr.stat-speed { --stat-c: #824ec0; }
+
+/* 招式表：屬性色飽和表頭列，標籤欄同色 tonal；其餘白底。 */
+.move { border-color: #e3ebe8; }
+.move td:first-child { width: 22%; background: color-mix(in srgb, var(--c, var(--move-color, #167d73)) 9%, #f6faf8); color: color-mix(in srgb, var(--c, var(--move-color, #167d73)) 52%, #102a26); font-weight: 700; }
+.move td:nth-child(2) { font-weight: 500; }
+.move tr:first-child td { background: var(--c, var(--move-color, var(--detail-accent))); color: var(--ink, var(--move-ink, #fff)); font-weight: 700; }
+
+/* 招式類型外框：拍組＝屬性飽和實框、極巨化＝深紅、同步＝炫彩。 */
+.move-frame { margin: 0 0 14px; padding: 3px; border-radius: 12px; }
 .move-frame > table {
   margin: 0;
   border: 0;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--move-color, #fff) 50%, var(--detail-panel));
+  border-radius: 9px;
+  background: var(--detail-panel);
 }
 .frame-sync {
-  background: linear-gradient(150deg,
-    color-mix(in srgb, var(--move-color, #414a5c) 55%, #141823),
-    color-mix(in srgb, var(--move-color, #1d212b) 35%, #141823));
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--move-color, #141823) 30%, transparent);
+  background: var(--move-color, var(--detail-accent));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--move-color, #167d73) 32%, transparent);
 }
-.frame-max { background: linear-gradient(150deg, #a3162f, #6d0d1f); box-shadow: 0 8px 20px rgba(122, 16, 32, .25); }
+.frame-max { background: #c62836; box-shadow: 0 8px 20px rgba(198, 40, 54, .28); }
+.frame-max .move tr:first-child td { background: #c62836; color: #fff; }
 .frame-buddy {
   background: linear-gradient(120deg, var(--move-color, #ff9a4d), #ff5d6c 16%, #ffb24d 32%, #ffe34d 48%, #54d97a 64%, #3dbef5 80%, #9b6bff);
   box-shadow: 0 8px 22px rgba(120, 90, 220, .22);
 }
 
-/* 潛能（餅乾）：與青藍色被動區分的暖金純色底。 */
-table.passive-cookie {
-  border-color: #e6cf92;
-  background: #faefd4;
+/* 被動能力：白卡片＋飽和左緣（一般＝cyan、同步被動＝purple、潛能＝amber tonal）。 */
+.content table.passive {
+  margin-bottom: 10px;
+  border: 1px solid #e4ebe8;
+  border-left: 4px solid #0097a7;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(25, 48, 51, .05);
 }
+.content table.passive td { padding: 10px 14px; line-height: 1.65; }
+.passive-name { margin-bottom: 2px; color: var(--detail-ink); font-weight: 700; }
+table.passive-sync { border-left-color: #7b1fa2; }
+table.passive-sync .passive-name { color: #6a1b9a; }
+table.passive-cookie {
+  border-color: #f0dfb6;
+  border-left-color: #ed8f00;
+  background: #fff9ee;
+}
+table.passive-cookie .passive-name { color: #8a5a00; }
 
 /* 超覺醒被動：彩虹框 + 極淡炫彩底，標題字樣用彩虹膠囊。 */
 table.passive-super {
   border: 2px solid transparent;
+  border-radius: 10px;
   background:
     linear-gradient(120deg, #fff6f7, #fff8ee 24%, #fdfbe9 40%, #f0fbf2 56%, #eef8fd 72%, #f5f0ff) padding-box,
     linear-gradient(120deg, #ff5d6c, #ffb24d, #ffe34d, #54d97a, #3dbef5, #9b6bff, #ff6bd6) border-box;
@@ -265,8 +294,12 @@ table.passive-super {
   box-shadow: 0 2px 8px rgba(155, 107, 255, .35);
 }
 .team { table-layout: fixed; }
-.team td { width: 33%; text-align: center; font-size: 12px; font-weight: 700; line-height: 1.5; vertical-align: middle; overflow-wrap: anywhere; word-break: break-all; white-space: normal; }
-.explore td { text-align: center; font-weight: 700; white-space: normal; overflow-wrap: anywhere; }
+.team td { width: 33%; padding: 8px; text-align: center; font-size: 12px; font-weight: 700; line-height: 1.5; vertical-align: middle; overflow-wrap: anywhere; word-break: break-all; white-space: normal; background: #fff; }
+/* 標籤格即 chip：屬性標籤飽和實心（--c/--ink 由 JS 依內嵌色算出），地區主題用 teal tonal。 */
+.team td.tag-generic, .team td.tag-attr { border-radius: 8px; }
+.team td.tag-generic { color: #0c6b5f; background: #e1f1ee; }
+.team td.tag-attr { color: var(--ink); background: var(--c); }
+.explore td { padding: 10px; text-align: center; font-weight: 700; white-space: normal; overflow-wrap: anywhere; color: var(--detail-ink); background: #f1f6f4 !important; }
 .ap-btn { float: right; margin-left: 8px; padding: 5px 9px; border: 1px solid var(--detail-accent); border-radius: 6px; color: var(--detail-accent-dark); background: #e7f5f1; cursor: pointer; font-size: 12px; }
 .ap-btn:hover { color: #fff; background: var(--detail-accent); }
 
