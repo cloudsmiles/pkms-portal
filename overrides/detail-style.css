@@ -234,7 +234,7 @@ tr.stat-speed { --stat-c: #824ec0; }
 .move tr:first-child td { background: var(--c, var(--move-color, var(--detail-accent))); color: var(--ink, var(--move-ink, #fff)); font-weight: 700; }
 
 /* 招式使用次數：天藍色膠囊能量條（取代原 ▭ 方塊字元）。 */
-.move-uses { display: inline-flex; gap: .22em; margin-left: .5em; vertical-align: -.06em; }
+.move-uses { display: inline-flex; align-items: center; gap: .22em; margin-left: .5em; vertical-align: middle; }
 .move-uses i {
   width: 1.05em;
   height: .42em;
@@ -245,7 +245,7 @@ tr.stat-speed { --stat-c: #824ec0; }
 .move tr:first-child .move-uses i { box-shadow: inset 0 -1px 0 rgba(7,92,133,.25), 0 0 0 1.5px rgba(255,255,255,.7); }
 
 /* 招式類型外框：拍組＝屬性飽和實框、極巨化＝深紅、同步＝炫彩。 */
-.move-frame { margin: 0 0 14px; padding: 3px; border-radius: 12px; }
+.move-frame { margin: 0 0 14px; padding: 3px; border-radius: 12px; overflow: hidden; }
 .move-frame .table-scroll { border-radius: 9px; }
 .move-frame .table-scroll > table {
   margin: 0;
@@ -257,30 +257,16 @@ tr.stat-speed { --stat-c: #824ec0; }
   background: var(--move-color, var(--detail-accent));
   box-shadow: 0 8px 20px color-mix(in srgb, var(--move-color, #167d73) 32%, transparent);
 }
-/* 極巨化：賽博電子掃描框——深艦體、切角、霓虹紅外框＋青色掃描線紋與來回雷射光條。 */
+/* 極巨化：圓角霓虹框——紅→艦藍→青漸層外框，表頭維持深艦體霓虹字。 */
 .frame-max {
   position: relative;
   padding: 4px;
-  border-radius: 0;
+  border-radius: 12px;
   background: linear-gradient(135deg, #ff2d55, #7a0f22 28%, #0b1220 52%, #07202b 78%, #00e5ff);
-  clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
   box-shadow: 0 0 18px rgba(255, 45, 85, .35), 0 8px 22px rgba(4, 12, 20, .45);
 }
-.frame-max .table-scroll { border-radius: 0; background: #0b1220; }
-.frame-max .table-scroll::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background:
-    repeating-linear-gradient(0deg, rgba(0, 229, 255, .07) 0 1px, transparent 1px 4px),
-    linear-gradient(180deg, transparent 0 52px, rgba(255, 45, 85, .0) 60px, rgba(255, 45, 85, .55) 68px, #ff2d55 70px, rgba(255, 45, 85, .18) 78px, transparent 92px, transparent 260px);
-  background-size: 100% auto, 100% 260px;
-  animation: cyber-laser 3s linear infinite;
-}
-.frame-max .table-scroll { position: relative; }
-.frame-max .table-scroll > table { border-radius: 0; background: #fff; }
+.frame-max .table-scroll { border-radius: 9px; background: #fff; overflow: hidden; }
+.frame-max .table-scroll > table { border-radius: 9px; background: #fff; }
 .frame-max .move tr:first-child td {
   background: linear-gradient(90deg, #1b0a12, #10182a 55%, #07131c);
   color: #ff5d78;
@@ -288,7 +274,6 @@ tr.stat-speed { --stat-c: #824ec0; }
   letter-spacing: .03em;
 }
 .frame-max .move tr:first-child td:last-child { color: #eafcff; text-shadow: 0 0 8px rgba(0, 229, 255, .55); }
-@keyframes cyber-laser { to { background-position: 0 0, 0 -260px; } }
 .frame-buddy {
   background: linear-gradient(120deg, var(--move-color, #ff9a4d), #ff5d6c 16%, #ffb24d 32%, #ffe34d 48%, #54d97a 64%, #3dbef5 80%, #9b6bff);
   box-shadow: 0 8px 22px rgba(120, 90, 220, .22);
