@@ -272,7 +272,35 @@ import { sourcePath } from './web-path.mjs';
     });
     document.querySelectorAll('.event-only').forEach((control) => { control.hidden = !getViewFilters(shared.tab).includes(control.dataset.filter); });
     writeStateToUrl();
+    syncBannerHeight();
   }
+
+  // 兩個分頁工具列高度不同，會讓滿版背景 cover 重新縮放。統一以「拍組分頁在目前
+  // 寬度的基礎高度」當 banner 最小高度：活動分頁用隱形分身量測，濾鏡列不計入
+  // （有啟用濾鏡時兩邊都自然長高）。resize 時重測。
+  const banner = $('.site-banner');
+  function measurePairsBannerHeight() {
+    const clone = banner.cloneNode(true);
+    clone.querySelectorAll('.pair-only').forEach((control) => { control.hidden = false; });
+    clone.querySelectorAll('.event-only').forEach((control) => { control.hidden = true; });
+    const clonedChips = clone.querySelector('#active-filters');
+    if (clonedChips) clonedChips.innerHTML = '';
+    clone.style.cssText += 'position:absolute;left:0;top:0;visibility:hidden;pointer-events:none;width:100%;';
+    clone.style.minHeight = ''; // 複製會連線上 banner 的 min-height 一起帶入，務必清掉否則量測只會一路攀升
+    document.body.append(clone);
+    const height = clone.getBoundingClientRect().height;
+    clone.remove();
+    return Math.ceil(height);
+  }
+  function syncBannerHeight() {
+    if (!banner) return;
+    banner.style.minHeight = `${measurePairsBannerHeight()}px`;
+  }
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(syncBannerHeight, 150);
+  });
 
   function setTab(tab) {
     if (shared.tab === tab) return;
