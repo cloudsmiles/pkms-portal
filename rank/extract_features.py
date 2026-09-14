@@ -6,6 +6,7 @@ import hashlib
 import json
 import posixpath
 import re
+import shutil
 import sys
 from pathlib import Path
 from zipfile import ZipFile
@@ -14,26 +15,27 @@ from xml.etree import ElementTree as ET
 from PIL import Image
 
 
-# 头像框颜色即搭档宝可梦属性；色值为本表 603 张 135x135 头像右上角框体采样的聚类中心。
+# 头像框颜色即搭档宝可梦属性。2026-09 改版后头像为 256x256，色值为当期 653 张头像
+# 顶部色带实测中位（框体平涂色，每属性单一色值，18 类完全分开）。
 TYPE_FRAME_COLORS = [
-    ((85, 184, 226), "水"),
-    ((69, 158, 78), "草"),
-    ((189, 52, 55), "火"),
-    ((220, 180, 10), "电"),
-    ((237, 155, 184), "妖精"),
-    ((160, 115, 155), "幽灵"),
-    ((74, 71, 89), "恶"),
-    ((73, 113, 221), "飞行"),
-    ((148, 201, 203), "冰"),
-    ((150, 148, 147), "一般"),
-    ((18, 132, 161), "龙"),
-    ((195, 75, 120), "超能力"),
-    ((127, 136, 156), "钢"),
-    ((120, 74, 145), "毒"),
-    ((133, 114, 95), "岩石"),
-    ((151, 89, 57), "地面"),
-    ((213, 119, 65), "格斗"),
-    ((156, 181, 88), "虫"),
+    ((62, 172, 216), "水"),
+    ((228, 76, 79), "火"),
+    ((69, 146, 75), "草"),
+    ((235, 133, 170), "妖精"),
+    ((194, 158, 0), "电"),
+    ((91, 90, 107), "恶"),
+    ((80, 122, 241), "飞行"),
+    ((156, 104, 151), "幽灵"),
+    ((138, 133, 132), "一般"),
+    ((66, 176, 184), "冰"),
+    ((0, 133, 167), "龙"),
+    ((227, 97, 147), "超能力"),
+    ((131, 77, 161), "毒"),
+    ((105, 116, 139), "钢"),
+    ((141, 119, 98), "岩石"),
+    ((154, 85, 51), "地面"),
+    ((121, 148, 56), "虫"),
+    ((212, 109, 50), "格斗"),
 ]
 
 NS = {
@@ -108,54 +110,45 @@ def col_name(number):
     return out
 
 
+# 256 版式唯一干净的框体色带：顶边中央偏右（星标右缘之后、右上角角色/属性小圆标
+# 之前）。旧 135 版式沿外框向内探測的取法在 256 上会吃到 EX 徽章/星标/叠放圆标。
+FRAME_SAMPLE_BOX = (0.47, 0.055, 0.72, 0.086)
+# 与最近属性中心的最大欧氏距离：实测 653 张全部距离 0（平涂框体即中心色），
+# 26 留给渐变/非属性框（如聚光位金框）——判不出属性时交回 match 阶段走全候选池。
+FRAME_MAX_DIST = 26.0
+
+
 def frame_color_rgb(image):
-    """从原图右上角框体取色：上边框直段(星星右侧) + 右边框上段(属性徽章上方)。
-
-    取色在原图分辨率进行，缩到十几像素后 4~5px 的属性框会被彻底平均掉，
-    这也是之前 16x16 向量里读不出框色的原因。
-    """
+    """从顶部中央色带取框体色：不透明像素取中位，再剔除抗锯齿/徽章边缘的离群点
+    做二次中位。返回 RGB 或 None（采样不足）。"""
     rgba = image.convert("RGBA")
-    px = rgba.load()
     width, height = rgba.size
-    samples = []
-
-    def band(start_x, start_y, dx, dy):
-        x, y = start_x, start_y
-        for _ in range(25):
-            if 0 <= x < width and 0 <= y < height and px[x, y][3] >= 200:
-                break
-            x += dx
-            y += dy
-        got = []
-        for _ in range(6):
-            if 0 <= x < width and 0 <= y < height:
-                r, g, b, a = px[x, y]
-                if a >= 200:
-                    got.append((r, g, b))
-            x += dx
-            y += dy
-        # 跳过最外侧 1~2px 半透明描边，取里面 4px 实色框体。
-        return got[1:5] if len(got) >= 5 else got
-
-    for x in range(68, min(119, width), 4):
-        samples += band(x, 0, 0, 1)
-    for y in range(12, min(30, height), 3):
-        samples += band(width - 1, y, -1, 0)
-    if len(samples) < 15:
+    px = rgba.load()
+    x0, y0, x1, y1 = (
+        int(FRAME_SAMPLE_BOX[0] * width), int(FRAME_SAMPLE_BOX[1] * height),
+        int(FRAME_SAMPLE_BOX[2] * width), int(FRAME_SAMPLE_BOX[3] * height),
+    )
+    samples = [px[x, y][:3] for y in range(y0, y1) for x in range(x0, x1) if px[x, y][3] >= 200]
+    if len(samples) < 20:
         return None
     samples.sort()
-    return samples[len(samples) // 2]
+    med = samples[len(samples) // 2]
+    inliers = sorted(p for p in samples if max(abs(p[i] - med[i]) for i in range(3)) < 22)
+    if len(inliers) < 20:
+        return None
+    return inliers[len(inliers) // 2]
 
 
 def classify_type(rgb):
     if rgb is None:
         return "", ""
-    nearest = min(
-        TYPE_FRAME_COLORS,
-        key=lambda item: sum((a - b) ** 2 for a, b in zip(rgb, item[0])),
+    nearest, dist2 = min(
+        ((item, sum((a - b) ** 2 for a, b in zip(rgb, item[0]))) for item in TYPE_FRAME_COLORS),
+        key=lambda pair: pair[1],
     )
-    hex_value = "#%02X%02X%02X" % rgb
-    return hex_value, nearest[1]
+    if dist2 ** 0.5 > FRAME_MAX_DIST:
+        return "", ""
+    return "#%02X%02X%02X" % rgb, nearest[1]
 
 
 def region_vector(image, box, size=16):
@@ -227,7 +220,10 @@ def main():
     output = Path(sys.argv[2] if len(sys.argv) > 2 else rank_dir / "工作区")
     output.mkdir(parents=True, exist_ok=True)
     image_dir = output / "头像原图"
-    image_dir.mkdir(exist_ok=True)
+    # 每次重抽前清空：旧榜单遗留的不同尺寸/不同拍组头像会污染目录，匹配阶段只认
+    # 本次 CSV 引用的文件，残留图只会造成误判与磁盘堆积。
+    shutil.rmtree(image_dir, ignore_errors=True)
+    image_dir.mkdir(parents=True)
 
     with ZipFile(source) as zf:
         strings = shared_strings(zf)

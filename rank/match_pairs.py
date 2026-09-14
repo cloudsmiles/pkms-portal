@@ -53,23 +53,31 @@ RANK_MEDAL_CROP = (0.0, 0.66, 0.28, 1.0)
 GAL_MEDAL_CROP = (0.0, 0.42, 0.30, 0.84)
 # 融合权重：人物脸是主身份，宝可梦区分同属性撞脸，勋章用于认大师/套裝拍组。
 W_PERSON, W_POKE, W_MEDAL = 0.5, 0.3, 0.2
-# 勋章不是每张都有：约 1/6 的拍组（普通 6EX）左下没有金 M 勋章，这时勋章通道只采到背景/
-# 宝可梦边缘，余弦是纯噪声、会把正确候选压下去（实测 F42/F108 都被勋章分坑错）。按勋章区
-# 【金色像素占比】判断查询有没有勋章：有则三项融合，没有则丢弃勋章、权重在人/宝两项间归一。
-# 金色占比实测：有勋章 ≥0.10、无勋章 ≈0（75 分位仅 0.018），阈值 0.08 间隔干净。
+# 勋章不是每张都有：约 1/6 的拍组（普通 6EX）左下没有勋章，这时勋章通道只采到背景/
+# 宝可梦边缘，余弦是纯噪声、会把正确候选压下去（实测 F42/F108 都被勋章分坑错）。
+# 256 版式按【模板像素差】判断：金 M 章有星章/圆章两款、另有灰盘金缎带的灰章，黄色衣物
+# 会让旧的「金色占比」失灵，改与 rank/勋章参考/ 的 7 张模板比紧裁缩图平均像素差（MAD）。
+# 实测真勋章 ≤26.0、黄衣/空框 ≥28.7，阈值 27 落在干净断层里。旧版式（<256）仍走金色占比。
 MEDAL_GOLD_TH = 0.08
+MEDAL_TMPL_DIR = RANK_DIR / "勋章参考"
+MEDAL_TMPL_BOX = (0.0, 180 / 256, 66 / 256, 250 / 256)  # 贴纸本体＋缎带尾，避开右侧框线主体
+MEDAL_TMPL_RES = 56
+MEDAL_MATCH_TH = 27.0
 # 人物特征输入分辨率：源图仅 128/135px，裁紧面部后提到 256 让脸部占更多像素、身份更准。
 EMBED_RES = 256
 # 黑名单：图库（★6ex）里没有对应、根本不该参与匹配的榜单头像。全部靠【像素/特征自动判】，
 # 不写死表格单元格——表格行列每次会变。
 # (1) 主人公（玩家自创角色）：icons 目录不含主角。判别特征是那顶带 P 标志的鸭舌帽——
-#     `主人公参考/` 里放几张主角头像模板（游戏素材，与表格无关），裁帽子区域取特征质心；
-#     榜单头像帽子区域与质心余弦≥PROTO_COS 即判为主人公。实测主角 0.91~0.96、无帽的命名主角
-#     （如優莉/赤紅）仅 0.78~0.85，间隔干净；男女主/换装变体都在内。
+#     `主人公参考/` 里放几张主角头像模板（游戏素材，与表格无关），裁帽子区域取深度特征；
+#     榜单头像帽子区域对任一模板的余弦≥PROTO_COS 即判为主人公。主角（含男女/换装变体）与
+#     无帽命名主角（如優莉/赤紅）之间间隔干净。
 # (2) 三星拍组：左上星级只有上排 3 颗金星、下排是暗色空星剪影；图库全是 ★6ex，无对应。
 PROTO_TMPL_DIR = Path(__file__).resolve().parent / "主人公参考"
 PROTO_CAP_CROP = (0.18, 0.13, 0.82, 0.52)  # 鸭舌帽区域（帽檐+P 标志），放大裁头顶
-PROTO_COS = 0.90
+# 256 版式下模板含男女綠帽主角各一（H80/I78）＋舊 135 樣例，用「對任一模板的最大餘弦」：
+# 全量實測綠帽主角 0.964~1.0、戴帽有名角色（小智紅帽等）最高 0.843，0.93 在斷層內。
+# 新增模板只能收錄人工確認的主角；切勿把榜單查詢圖直接收編（自比≈1 會自我實現誤判）。
+PROTO_COS = 0.93
 
 # 提取脚本里框色用简体标签，data.js attributes 用繁体。
 S2T = {
@@ -105,6 +113,26 @@ def load_ex_truth():
     return ex2attr, ex2name
 
 
+def hero_candidates(icon_dir):
+    """玩家主角拍組（主角&Ｘ）的【一般圖示】清單：[(path, pair.name, 屬性集合)]。
+
+    主角拍組沒有 ★6ex 人物立繪，icons 裡是僅含寶可夢本體的方形一般圖示（與 ★6ex 同版式，
+    可用同一 GAL 勳章裁框）；名單與屬性一律取 data.js 真值（pair.image / attributes），
+    缺檔的跳過。
+    """
+    raw = DATA_JS.read_text(encoding="utf-8")
+    data, _ = json.JSONDecoder().raw_decode(raw, raw.index("{"))
+    out = []
+    for p in data["pairs"]:
+        image = p.get("image", "")
+        if not p["name"].startswith("主角") or not image:
+            continue
+        path = icon_dir / os.path.basename(image)
+        if path.exists() and "role" not in path.name.lower():
+            out.append((path, p["name"], set(p["attributes"])))
+    return sorted(out, key=lambda x: x[1])
+
+
 def build_model(device):
     model = torch.nn.Sequential(*list(resnet50(weights=ResNet50_Weights.DEFAULT).children())[:-1])
     model.eval().to(device)
@@ -133,13 +161,32 @@ def _is_dark(r, g, b):
     return r < 90 and g < 90 and b < 90
 
 
+# 方形拍组头像尺寸：128/135/240 为旧版式，256 为 2026-09 游戏改版后的新版式。
+# 列 B 等级徽章是 160~179 的方形（不在这里）、列 D 子级数字 24~38、分节横幅 1024/2048，
+# 靠尺寸白名单即可与头像分开（不写死表格位置）。
+AVATAR_SIZES = (128, 135, 240, 256)
+
+
+def is_avatar_row(r):
+    try:
+        w, h = int(r["width"]), int(r["height"])
+    except (TypeError, ValueError, KeyError):
+        return False
+    return w == h and w in AVATAR_SIZES
+
+
 def is_three_star(im):
-    """三星拍组：左上星级区下排两颗（y≈0.225）是空的暗色星剪影、无金星填充；6 星 EX 的
-    下排两颗都是金星。实测 603 张里三星下槽暗像素 36~38、金≤11，6 星下槽全是强金，间隔干净。"""
+    """三星拍组：左上星级区下排两颗是空的暗色星剪影、无金星填充；6 星 EX 的下排两颗都是
+    金星。星槽位置随版式移动：256 新版式在 (.155/.265, .197)，旧版式在 (.075/.16, .225)。
+    实测 256 三星下槽暗像素 88~89、金=0，6 星下槽全是强金（108/116），间隔干净。"""
     w, h = im.size
     px = im.load()
+    if w >= 250:
+        slots = [(0.155, 0.197, 7), (0.265, 0.197, 7)]
+    else:
+        slots = [(0.075, 0.225, 6), (0.16, 0.225, 6)]
 
-    def slot(cx, cy, half=6):
+    def slot(cx, cy, half):
         goldn = darkn = 0
         for dy in range(-half, half + 1):
             for dx in range(-half, half + 1):
@@ -152,7 +199,7 @@ def is_three_star(im):
                         darkn += 1
         return goldn, darkn
 
-    bot = [slot(cx, 0.225) for cx in (0.075, 0.16)]
+    bot = [slot(cx, cy, half) for cx, cy, half in slots]
     return all(g <= 20 for g, _ in bot) and any(d > 30 for _, d in bot)
 
 
@@ -200,6 +247,37 @@ def medal_gold_frac(im, box):
     return gold / tot if tot else 0.0
 
 
+def _medal_thumb(im, size=MEDAL_TMPL_RES):
+    """勋章贴纸紧裁区缩成固定字节序列（查询/模板同处理；输入须已白底合成）。"""
+    crop = crop_roi(im.convert("RGB"), MEDAL_TMPL_BOX)
+    return list(crop.resize((size, size), Image.Resampling.LANCZOS).tobytes())
+
+
+def load_medal_templates():
+    """勋章参考模板（整张 256 头像，载入时按同一紧裁框取缩图）。"""
+    return [(p.name, _medal_thumb(open_rgb(p)))
+            for p in sorted(MEDAL_TMPL_DIR.glob("*.png"))]
+
+
+def has_medal(im, templates):
+    """与任一模板的紧裁缩图平均字节差（MAD）≤ 阈值即判定有勋章贴纸。
+    金章两款（星紫缎带/圆红缎带）与灰章（金缎带）各有模板；黄色衣物/空角落在断层外。"""
+    thumb = _medal_thumb(im)
+    best = min(sum(abs(a - b) for a, b in zip(thumb, ref)) / len(thumb)
+               for _name, ref in templates)
+    return best <= MEDAL_MATCH_TH
+
+
+@torch.no_grad()
+def proto_scores(model, device, paths):
+    """查詢帽子區對「任一」主角模板的最大餘弦。模板混 135/256 兩版式，故不能取質心
+    （跨版式差異會把質心拉散），也絕不可把榜單查詢圖直接收編為模板——自比餘弦≈1，
+    會把任何戴帽角色（如紅帽小智）自我實現成主角。"""
+    tmpl_cap = embed(model, sorted(PROTO_TMPL_DIR.glob("*.png")), device, PROTO_CAP_CROP)
+    query_cap = embed(model, paths, device, PROTO_CAP_CROP)
+    return (query_cap @ tmpl_cap.T).max(1).values
+
+
 @torch.no_grad()
 def embed(model, paths, device, box, res=EMBED_RES, batch=32):
     tf = _make_transform(res)
@@ -211,11 +289,32 @@ def embed(model, paths, device, box, res=EMBED_RES, batch=32):
     return torch.cat(out) if out else torch.empty(0)
 
 
+@torch.no_grad()
+def hero_embeddings(model, device, hero):
+    """主角一般圖示只含寶可夢：寶可夢通道用共用 POKE_CROP，勳章用圖庫版式的 GAL 裁框。"""
+    paths = [p for p, _n, _a in hero]
+    return embed(model, paths, device, POKE_CROP), embed(model, paths, device, GAL_MEDAL_CROP)
+
+
+def hero_ranking(q_poke, q_medal, has_medal, q_type, hero, hp, hm):
+    """主角查詢在同屬性主角圖示池內排名：人物通道全是雜訊（圖示無人），只融寶可夢
+    （查詢的六角徽章小圖）＋勳章；無勳章時只看寶可夢。回傳 [(hero 索引, 融合分, 寶可夢分, 勳章分)]。"""
+    pool = [j for j, (_p, _n, attrs) in enumerate(hero) if q_type in attrs]
+    rows = []
+    for j in pool:
+        ps = float(q_poke @ hp[j])
+        ms = float(q_medal @ hm[j])
+        fused = (W_POKE * ps + W_MEDAL * ms) / (W_POKE + W_MEDAL) if has_medal else ps
+        rows.append((j, fused, ps, ms))
+    rows.sort(key=lambda x: x[1], reverse=True)
+    return rows
+
+
 def candidate_embeddings(model, device, paths, cache_path):
     """图库静态、量大，缓存人物/宝可梦/勋章三套特征（按文件名清单+分辨率+裁框版本失效）。"""
     names = [p.name for p in paths]
     # 裁框/逻辑变了要 bump，让旧缓存（用旧人物裁框算的 person）失效重算。
-    cache_ver = 2
+    cache_ver = 3
     if cache_path.exists():
         cached = torch.load(cache_path, map_location="cpu")
         if (cached.get("names") == names and cached.get("res") == EMBED_RES
@@ -242,72 +341,82 @@ def main():
     # 比较——孤儿没有属性真值，当通配会跨属性误配（水属阿馴配进虫/超能力池）。
     candidates = sorted(p for p in icon_dir.glob("★6ex*")
                         if "role" not in p.name.lower() and p.name in ex2attr)
+    # 玩家主角拍組（主角&Ｘ）沒有 ★6ex 人物立繪，另用僅含寶可夢的一般圖示比對。
+    hero = hero_candidates(icon_dir)
 
-    # 查询 = 方形拍组头像。榜单里大部分是 135×135 缩略图，但高规格拍组（冠军/大师/周年等
-    # 聚光位）会被贴成 128×128 或 240×240 的大/小瓷砖——它们同样是要匹配上榜的拍组，不能按
-    # 尺寸丢了。列 B 等级徽章是 160~2048、列 D 子级数字是 24~38、分节横幅 C2 是 1024，均不在
-    # {128,135,240} 白名单内，靠尺寸即可与头像分开（不写死表格位置）。
-    def is_avatar(r):
-        try:
-            w, h = int(r["width"]), int(r["height"])
-        except (TypeError, ValueError):
-            return False
-        return w == h and w in (128, 135, 240)
-
+    # 查询 = 方形拍组头像。旧版式大部分是 135×135，聚光位贴 128/240；2026-09 改版后统一
+    # 256×256（含列 B 聚光位）。列 B 等级徽章是 160~2048、列 D 子级数字是 24~38、分节横幅
+    # 1024/2048，均不在白名单内，靠尺寸即可与头像分开（不写死表格位置）。
     with (feature_dir / "拍组图片特征.csv").open(encoding="utf-8-sig", newline="") as f:
-        queries = [r for r in csv.DictReader(f) if is_avatar(r)]
-    # 非 135 聚光位（128/240）：彩虹/大师框不带属性色，且小/大瓷砖框色采样不稳（实测 240 多误判
-    # 成岩石、128 红框在格斗/火之间、橄榄框在岩石/虫之间误判），属性硬过滤会把正确候选挡在池外
-    # （H9 炎帝因红框误判格斗进不了火池、F12 遠古巨蜓因误判岩石进不了虫池而漏配）。这类查询改全
-    # 候选池比深度特征（人脸是主身份），并【一律人工复核】兜底，避免错配。
-    query_spotlight = {qi for qi, r in enumerate(queries) if r["width"] != "135"}
+        queries = [r for r in csv.DictReader(f) if is_avatar_row(r)]
+    if not queries:
+        raise SystemExit(
+            "特徵 CSV 裡沒有任何方形頭像（接受尺寸 128/135/240/256）。"
+            "請確認 extract_features.py 已對當前期榜單重新抽圖，再重跑本程式。"
+        )
+
+    # 聚光位（不在 F–Q 网格内的特殊大瓷砖，256 版式只有列 B＝列號 2）：大师/彩虹金框不带属性
+    # 色，框色采样不可信，属性硬过滤会把正确候选挡在池外。这类查询改走【全候选池】比深度特征
+    # （人脸是主身份），并一律人工复核。旧版式聚光位是 128/240（非 135 即聚光位）。
+    def is_spotlight(r):
+        w = int(r["width"])
+        return r.get("列") == "2" if w >= 250 else w != 135
+
+    query_spotlight = {qi for qi, r in enumerate(queries) if is_spotlight(r)}
     query_paths = [feature_dir / r["导出图片"] for r in queries]
 
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     model = build_model(device)
-    print(f"设备：{device}；候选 {len(candidates)}，查询 {len(queries)}，正在提取深度特征…")
+    print(f"设备：{device}；★6ex 候选 {len(candidates)}、主角候选 {len(hero)}，"
+          f"查询 {len(queries)}，正在提取深度特征…")
     cand_person, cand_poke, cand_medal = candidate_embeddings(model, device, candidates, cache_path)
+    hero_poke, hero_medal = hero_embeddings(model, device, hero)
     query_person = embed(model, query_paths, device, RANK_PERSON_CROP)
     query_poke = embed(model, query_paths, device, POKE_CROP)
     query_medal = embed(model, query_paths, device, RANK_MEDAL_CROP)
-    # 查询有无金 M 勋章：没有就不融勋章通道（纯噪声），权重在人/宝两项间归一。
+    # 查询有无勋章：没有就不融勋章通道（纯噪声），权重在人/宝两项间归一。
+    # 256 新版式用模板 MAD（黄色衣物会骗过金色占比），旧版式沿用金色占比。
+    medal_templates = load_medal_templates()
     query_has_medal = [
-        medal_gold_frac(open_rgb(p), RANK_MEDAL_CROP) >= MEDAL_GOLD_TH for p in query_paths
+        has_medal(open_rgb(p), medal_templates) if int(r["width"]) >= 250
+        else medal_gold_frac(open_rgb(p), RANK_MEDAL_CROP) >= MEDAL_GOLD_TH
+        for p, r in zip(query_paths, queries)
     ]
     w_person2 = W_PERSON / (W_PERSON + W_POKE)
     w_poke2 = W_POKE / (W_PERSON + W_POKE)
 
-    # 黑名单（全部按图像自动判，不写死表格单元格——表格每次会变）：
-    #  主人公：`主人公参考/` 模板头像的【帽子区域】特征质心；榜单头像帽子区余弦≥PROTO_COS 即命中
-    #         （戴 P 标志鸭舌帽的玩家自创角色；无帽的命名主角如優莉/赤紅分很低）。
-    #  三星：下排星槽是暗色空星剪影。两类图库（★6ex）都无对应，不参与匹配、不占候选。
-    tmpl_paths = sorted(PROTO_TMPL_DIR.glob("*.png"))
-    tmpl_cap = embed(model, tmpl_paths, device, PROTO_CAP_CROP)
-    cap_cent = F.normalize(tmpl_cap.mean(0, keepdim=True), dim=1)
-    query_cap = embed(model, query_paths, device, PROTO_CAP_CROP)
-    proto_cos = (query_cap @ cap_cent.T).squeeze(1)
+    # 玩家主角判定（帽子区域对「主人公参考/」任一模板的最大余弦≥PROTO_COS）不再是黑名单：
+    # 主角拍组改用仅含宝可梦的一般图示走 hero 池比对（见下方 rankings 分支）。主角查询即便
+    # 无 EX/仅三星（主角图图示本就不是 6ex），也不进非 EX 黑名单。
+    proto_cos = proto_scores(model, device, query_paths)
     proto = {qi for qi in range(len(queries)) if float(proto_cos[qi]) >= PROTO_COS}
-    # 无 EX 徽章 = 非 6EX（图库全是 6EX 立绘）：含 3 星（下排星槽暗色空剪影）和 5 星无 EX。
-    # 按“宁可不出匹配也不要错配”，一律拉黑、不占候选。
-    no_ex = {qi for qi, p in enumerate(query_paths) if not has_ex_badge(open_rgb(p))}
+    # 无 EX 徽章 = 非 6EX 的【有名拍组】（图库全是 6EX 立绘）：含 3 星和 5 星无 EX，按
+    # “宁可不出匹配也不要错配”拉黑。主角查询豁免（其图库对应物本就是非 ex 一般图示）。
+    no_ex = {qi for qi, p in enumerate(query_paths) if not has_ex_badge(open_rgb(p))} - proto
     star3 = {qi for qi in no_ex if is_three_star(open_rgb(query_paths[qi]))}
 
     def _reason(qi):
-        if qi in proto:
-            return "主人公"
-        if qi in star3:
-            return "三星拍组"
-        return "非EX(五星)"
+        return "三星拍组" if qi in star3 else "非EX(五星)"
 
-    blacklist = {qi: _reason(qi) for qi in proto | no_ex}
+    blacklist = {qi: _reason(qi) for qi in no_ex}
     active = [qi for qi in range(len(queries)) if qi not in blacklist]
-    print(f"黑名单 {len(blacklist)} 张不匹配（主人公 {len(proto)}、非EX {len(no_ex - proto)}），"
-          f"参与匹配 {len(active)} 张。")
+    print(f"主角查询 {len(proto)} 张走主角图库；黑名单 {len(blacklist)} 张不匹配"
+          f"（三星 {len(star3)}、非EX {len(no_ex - star3)}），参与匹配 {len(active)} 张。")
 
     # 每个参与匹配的查询，在其同属性候选池内算三套余弦并融合，得到按融合分降序的候选排名。
     rankings = [None] * len(queries)
     for qi in active:
         q_type = S2T.get(queries[qi].get("属性", ""), "")
+        if qi in proto:
+            # 主角查詢：人物通道全是雜訊（主角一般圖示無人物），只在同屬性主角圖示池比
+            # 寶可夢（＋勳章）。hero 索引編碼成負數，與 ex 候選索引互不衝突。
+            ranked = hero_ranking(query_poke[qi], query_medal[qi], query_has_medal[qi],
+                                  q_type, hero, hero_poke, hero_medal)
+            rankings[qi] = [(-j - 1, f, 0.0, ps, ms) for j, f, ps, ms in ranked]
+            if not rankings[qi]:
+                print(f"  警告：主角查詢 {queries[qi]['锚点单元格']}（{q_type}）在主角圖示池中"
+                      f"無同屬性候選，略過")
+            continue
         if qi in query_spotlight:
             # 聚光位框色不可靠：全候选池比深度特征（身份仍由人脸/宝可梦决定），强制复核。
             pool = torch.arange(len(candidates), dtype=torch.long)
@@ -399,21 +508,30 @@ def main():
             if entry[0] not in seen:
                 shown.append(entry)
                 seen.add(entry[0])
+        def file_name(ci):
+            return hero[-ci - 1][0].name if ci < 0 else candidates[ci].name
+
+        def pair_name(ci):
+            if ci < 0:
+                return hero[-ci - 1][1]
+            # 等级表以 data.js 的权威拍组名 pair.name 为键（build 合并用同一标识）。
+            return ex2name.get(candidates[ci].name) or (
+                candidates[ci].stem.split("_", 1)[1] if "_" in candidates[ci].stem else candidates[ci].stem)
+
         for rank, (ci, fsim, psim, ksim, msim) in enumerate(shown, 1):
-            row[f"候选{rank}"] = candidates[ci].name
+            row[f"候选{rank}"] = file_name(ci)
             row[f"候选{rank}分数"] = f"{fsim:.4f}"
             row[f"候选{rank}人物分"] = f"{psim:.4f}"
             row[f"候选{rank}宝可梦分"] = f"{ksim:.4f}"
             row[f"候选{rank}勋章分"] = f"{msim:.4f}"
-        best_path = candidates[best_ci]
-        # 等级表以 data.js 的权威拍组名 pair.name 为键（build 合并用同一标识）；图标文件名只是它的 exImage。
-        row["最佳拍组名称"] = ex2name.get(best_path.name) or (
-            best_path.stem.split("_", 1)[1] if "_" in best_path.stem else best_path.stem)
+        row["最佳拍组名称"] = pair_name(best_ci)
         row["冠亚差"] = f"{margin:.4f}"
         row["匹配置信度"] = f"{max(0.0, min(1.0, margin / 0.08)):.4f}"
-        # 融合分过低、全池冠亚差过小、首选被占而改派、或 240 聚光位（框色不可靠/全池匹配），
-        # 都转人工复核。
-        row["是否需复核"] = "是" if (best_fused < 0.72 or margin < 0.015
+        # 融合分过低、全池冠亚差过小、首选被占而改派、或聚光位（框色不可靠/全池匹配），
+        # 都转人工复核。主角匹配靠属性池（多为唯一候选）＋勳章结构证据，絕對分低不代表
+        # 不確定，故不套用 0.72 低分門檻，只看冠亚差/改派。
+        low_score = (not qi in proto) and best_fused < 0.72
+        row["是否需复核"] = "是" if (low_score or margin < 0.015
                                   or reassigned or qi in query_spotlight) else "否"
         row["无需匹配"] = "否"
         row["黑名单原因"] = ""
