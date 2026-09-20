@@ -24,7 +24,7 @@ body {
   padding: clamp(16px, 3vw, 32px) var(--detail-page-gap) clamp(36px, 5vw, 64px);
   color: var(--detail-ink);
   background: var(--detail-bg);
-  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
   font-size: var(--detail-body-size);
   overflow-x: hidden;
 }

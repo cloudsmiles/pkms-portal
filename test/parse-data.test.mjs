@@ -19,6 +19,15 @@ test('详情页覆盖资源注入可重复执行', () => {
   assert.equal(injectDetailAssets(injected), injected);
 });
 
+test('詳情頁注入拍組名標題、語言與描述，且可重複執行', () => {
+  const html = '<html><head><title>拍檔石盤</title></head><body></body></html>';
+  const injected = injectDetailAssets(html, {}, '小智&皮卡丘');
+  assert.match(injected, /<html lang="zh-Hant">/);
+  assert.match(injected, /<title>小智&amp;皮卡丘 · 拍檔石盤<\/title>/);
+  assert.match(injected, /<meta name="description" content="小智&amp;皮卡丘 的拍檔石盤、招式、被動能力與能力值資料。">/);
+  assert.equal(injectDetailAssets(injected, {}, '小智&皮卡丘'), injected);
+});
+
 test('详情页返回链接默认回主页，并可用 back 参数保留清单查询', async () => {
   const script = await readFile(new URL('../overrides/detail-ui.js', import.meta.url), 'utf8');
   assert.match(script, /get\('back'\)/);

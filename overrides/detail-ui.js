@@ -254,9 +254,9 @@
 
   // 雙形態頁的第二（以上）個 Tab：由面板內容與 Tab 名判定是極巨化／太晶化／超級進化，補上官方徽章。
   const FORM_BADGES = {
-    dyna: { src: '../../assets/forms/dyna.png', label: '極巨化形態' },
-    mega: { src: '../../assets/forms/mega.png', label: '超級進化形態' },
-    tera: { src: '../../assets/forms/tera.png', label: '太晶化形態' },
+    dyna: { src: '../../assets/forms/dyna.webp', label: '極巨化形態' },
+    mega: { src: '../../assets/forms/mega.webp', label: '超級進化形態' },
+    tera: { src: '../../assets/forms/tera.webp', label: '太晶化形態' },
   };
   const detectForm = (panel, tabText) => {
     const text = panel.textContent;

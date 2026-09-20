@@ -135,9 +135,9 @@ import { sourcePath } from './web-path.mjs';
 
   // 特殊形態圖示：平時淡顯於卡片圖區右下角，懸浮卡片時全亮並播放代表色呼吸光暈。
   const FORM_ICONS = {
-    mega: { src: './assets/forms/mega.png', label: '超級進化形態' },
-    dyna: { src: './assets/forms/dyna.png', label: '極巨化形態' },
-    tera: { src: './assets/forms/tera.png', label: '太晶化形態' },
+    mega: { src: './assets/forms/mega.webp', label: '超級進化形態' },
+    dyna: { src: './assets/forms/dyna.webp', label: '極巨化形態' },
+    tera: { src: './assets/forms/tera.webp', label: '太晶化形態' },
   };
   const formsMarkup = (forms) => (forms?.length
     ? `<div class="pair-forms">${forms.map((form) => (FORM_ICONS[form] ? `<img class="pair-form-icon form-${form}" src="${FORM_ICONS[form].src}" alt="" title="${FORM_ICONS[form].label}">` : '')).join('')}</div>`
@@ -249,7 +249,9 @@ import { sourcePath } from './web-path.mjs';
       : '';
   }
 
-  function render() {
+  // 輕量路徑：搜尋輸入與翻頁只更新結果區（卡片／分頁／結果數／篩選晶片／網址），
+  // 不重建自訂選單、不切換工具列元件、不重測滿版背景高度，按鍵才不會卡。
+  function renderList() {
     const records = filteredRecords();
     const totalPages = Math.max(1, Math.ceil(records.length / shared.pageSize));
     state.page = Math.min(state.page, totalPages);
@@ -258,6 +260,13 @@ import { sourcePath } from './web-path.mjs';
     $('#empty').hidden = records.length > 0;
     $('#result-summary').textContent = `顯示 ${records.length ? (state.page - 1) * shared.pageSize + 1 : 0}–${Math.min(state.page * shared.pageSize, records.length)} 筆，共 ${records.length} 筆`;
     renderPagination(totalPages);
+    renderActiveFilters();
+    writeStateToUrl();
+  }
+
+  // 結構性變更（切分頁、改篩選、清除、前進後退）才重建自訂選單與工具列可見性。
+  function render() {
+    renderList();
     $('#section-title').textContent = shared.tab === 'pairs' ? '拍組圖鑑' : '活動日志';
     $('#section-kicker').textContent = shared.tab === 'pairs' ? 'PAIR INDEX' : 'EVENT LOG';
     document.querySelectorAll('.custom-select').forEach((control) => {
@@ -267,15 +276,13 @@ import { sourcePath } from './web-path.mjs';
       control.classList.toggle('is-active', active);
     });
     renderCustomSelects();
-    renderActiveFilters();
     document.querySelectorAll('.pair-only').forEach((control) => {
       const isPairToolbarControl = ['sort', 'limited'].includes(control.dataset.filter);
       control.hidden = shared.tab !== 'pairs' || (!isPairToolbarControl && !getViewFilters(shared.tab).includes(control.dataset.filter));
     });
     document.querySelectorAll('.event-only').forEach((control) => { control.hidden = !getViewFilters(shared.tab).includes(control.dataset.filter); });
-    writeStateToUrl();
-    syncBannerHeight();
   }
+
 
   // 兩個分頁工具列高度不同，會讓滿版背景 cover 重新縮放。統一以「拍組分頁在目前
   // 寬度的基礎高度」當 banner 最小高度：活動分頁用隱形分身量測，濾鏡列不計入
@@ -303,6 +310,15 @@ import { sourcePath } from './web-path.mjs';
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(syncBannerHeight, 150);
   });
+  // 非同步字體載入後工具列可能換行，補測一次避免背景高度短少。
+  document.fonts?.ready.then(() => syncBannerHeight());
+
+  // 連續按鍵只在影幀末尾重繪一次，與 IME 組字判定一起避免輸入卡頓。
+  let listRenderFrame = 0;
+  const scheduleListRender = () => {
+    cancelAnimationFrame(listRenderFrame);
+    listRenderFrame = requestAnimationFrame(renderList);
+  };
 
   function setTab(tab) {
     if (shared.tab === tab) return;
@@ -312,7 +328,13 @@ import { sourcePath } from './web-path.mjs';
     render();
   }
   document.querySelectorAll('.tab').forEach((button) => button.addEventListener('click', () => setTab(button.dataset.tab)));
-  $('#search').addEventListener('input', (event) => { state.query = event.target.value; state.page = 1; render(); });
+  $('#search').addEventListener('input', (event) => {
+    // IME 組字過程（isComposing）先不篩選，選字完成後會再觸發一次正式 input。
+    if (event.isComposing) return;
+    state.query = event.target.value;
+    state.page = 1;
+    scheduleListRender();
+  });
   $('#role-filter').addEventListener('change', (event) => { state.role = event.target.value; state.page = 1; render(); });
   $('#status-filter').addEventListener('change', (event) => { state.status = event.target.value; state.page = 1; render(); });
   $('#date-filter').addEventListener('change', (event) => { state.date = event.target.value; state.page = 1; render(); });
@@ -413,7 +435,15 @@ import { sourcePath } from './web-path.mjs';
     syncDomFromState();
     render();
   });
-  $('#pagination').addEventListener('click', (event) => { const page = Number(event.target.dataset.page); if (page) { state.page = page; render(); window.scrollTo({ top: 300, behavior: 'smooth' }); } });
+  $('#pagination').addEventListener('click', (event) => {
+    const page = Number(event.target.dataset.page);
+    if (!Number.isInteger(page) || page < 1) return;
+    state.page = page;
+    renderList();
+    // 滾到結果標題列而非寫死 px：行動版 banner 很高，300px 會停在工具列中間。
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    $('.section-heading').scrollIntoView(reduceMotion ? { block: 'start' } : { behavior: 'smooth', block: 'start' });
+  });
   $('#pair-count').textContent = data.pairs.length; $('#event-count').textContent = data.events.length;
   $('#category-filter').innerHTML = ['<option value="all">全部</option>', ...getPairCategories(data.pairs).map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)].join('');
   $('#attribute-filter').innerHTML = getAttributeOptions().map((attribute) => `<option value="${attribute}">${escapeHtml(getFilterOptionLabel('attribute', attribute))}</option>`).join('');
@@ -434,4 +464,5 @@ import { sourcePath } from './web-path.mjs';
   readStateFromUrl();
   syncDomFromState();
   render();
+  syncBannerHeight();
 })();

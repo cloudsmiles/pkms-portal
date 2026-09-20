@@ -24,11 +24,26 @@ async function loadRankMap() {
   }
 }
 
+// 屬性值用的 HTML 跳脫（拍組名含 &（）等字元）。
+const escapeHtmlAttr = (value) => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 // 快取破壞：detail 資源引用附加 ?v=<內容雜湊>，詳頁樣式/腳本更新後瀏覽器不會吃到舊快取。
-export function injectDetailAssets(html, versions = {}) {
+// pairName 為檔名去掉 .html（＝拍組名）：補上可分辨的分頁標題、語言與描述。
+export function injectDetailAssets(html, versions = {}, pairName = '') {
   const styleQuery = versions.style ? `?v=${versions.style}` : '';
   const uiQuery = versions.ui ? `?v=${versions.ui}` : '';
-  const withViewport = /<meta\s+[^>]*name=["']viewport["']/i.test(html) ? html : html.replace('</head>', '  <meta name="viewport" content="width=device-width, initial-scale=1">\n</head>');
+  let out = html.replace(/<html(?![^>]*\blang=)([^>]*)>/i, '<html lang="zh-Hant"$1>');
+  if (pairName) {
+    const safeName = escapeHtmlAttr(pairName);
+    const title = `${safeName} · 拍檔石盤`;
+    out = /<title[^>]*>[\s\S]*?<\/title>/i.test(out)
+      ? out.replace(/<title[^>]*>[\s\S]*?<\/title>/i, `<title>${title}</title>`)
+      : out.replace('</head>', `  <title>${title}</title>\n</head>`);
+    if (!out.includes('name="description"')) {
+      out = out.replace('</head>', `  <meta name="description" content="${safeName} 的拍檔石盤、招式、被動能力與能力值資料。">\n</head>`);
+    }
+  }
+  const withViewport = /<meta\s+[^>]*name=["']viewport["']/i.test(out) ? out : out.replace('</head>', '  <meta name="viewport" content="width=device-width, initial-scale=1">\n</head>');
   const withStyle = withViewport.includes('detail-style.css') ? withViewport : withViewport.replace('</head>', `  <link rel="stylesheet" href="./detail-style.css${styleQuery}">\n</head>`);
   return withStyle.includes('detail-ui.js') ? withStyle : withStyle.replace('</head>', `  <script src="./detail-ui.js${uiQuery}" defer></script>\n</head>`);
 }
@@ -45,7 +60,8 @@ async function copyGrids(sourceDir, distDir, detailVersions) {
   for (const name of await readdir(sourceGrids)) {
     if (!name.endsWith('.html')) continue;
     const html = await readFile(resolve(sourceGrids, name), 'utf8');
-    await writeFile(resolve(targetGrids, name), injectDetailAssets(html, detailVersions), 'utf8');
+    const pairName = name.replace(/\.html$/i, '');
+    await writeFile(resolve(targetGrids, name), injectDetailAssets(html, detailVersions, pairName), 'utf8');
   }
 }
 

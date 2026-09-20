@@ -1,8 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
-
 :root { --ink: #23302d; --muted: #6d857e; --bg: #f4faf7; --panel: #ffffff; --line: #dce9e3; --mint: #2fae86; --mint-ink: #176b52; --mint-soft: #d9f5ea; --mint-chip: #e7f9f2; --orange: #d98a3c; --orange-soft: #ffe6cc; --danger: #e25c54; --shadow-card: 0 6px 16px rgba(31,74,61,.10); --shadow-control: 0 3px 8px rgba(31,74,61,.06); --shadow-menu: 0 16px 32px rgba(31,74,61,.16); }
 * { box-sizing: border-box; }
-body { margin: 0; color: var(--ink); background-color: var(--bg); font-family: 'Noto Sans TC', 'PingFang TC', sans-serif; }
+body { margin: 0; color: var(--ink); background-color: var(--bg); font-family: 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; }
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 .page-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
@@ -218,7 +216,7 @@ h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
 .fieldeffect-select .fx-dot.attribute-15 { background: #4a4759; }
 .fieldeffect-select .fx-dot.attribute-16 { background: #7f889c; }
 .fieldeffect-select .fx-dot.attribute-17 { background: #ed9bb8; }
-.pair-total { float: right; color: var(--muted); font: 500 11px 'Noto Sans TC', 'PingFang TC', sans-serif; }
+.pair-total { float: right; color: var(--muted); font: 500 11px 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; }
 
 /* 卡片標題列：田雞榜等級徽章在左、Lv.200 白值在右 */
 .pair-topline { display: flex; align-items: center; gap: 6px; min-height: 17px; }
