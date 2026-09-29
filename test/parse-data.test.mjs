@@ -28,6 +28,12 @@ test('詳情頁注入拍組名標題、語言與描述，且可重複執行', ()
   assert.equal(injectDetailAssets(injected, {}, '小智&皮卡丘'), injected);
 });
 
+test('詳情頁極巨化徽章只認招式表標籤欄，不被被動泛指文本誤導', async () => {
+  const script = await readFile(new URL('../overrides/detail-ui.js', import.meta.url), 'utf8');
+  assert.match(script, /querySelectorAll\('table\.move'\)[\s\S]{0,200}拍組極巨化招式/);
+  assert.doesNotMatch(script, /text\.includes\('拍組極巨化招式'\)/);
+});
+
 test('详情页返回链接默认回主页，并可用 back 参数保留清单查询', async () => {
   const script = await readFile(new URL('../overrides/detail-ui.js', import.meta.url), 'utf8');
   assert.match(script, /get\('back'\)/);
@@ -92,6 +98,11 @@ test('非攻擊型依招式分類推導物攻、特攻或雙攻', () => {
 test('只從基本資料標題解析限定標籤，不包含拍組搜尋', () => {
   assert.equal(parsePairLimitedTag('<table><tr><th>大師盛典限定★5 美月&奈克洛茲瑪</th></tr></table>'), '大師盛典限定');
   assert.equal(parsePairLimitedTag('<table><tr><th>拍組搜尋★5 美月&奈克洛茲瑪</th></tr></table>'), '');
+});
+
+test('阿爾套裝盛典解析為獨立的阿爾盛典限定，不併入盛典限定', () => {
+  assert.equal(parsePairLimitedTag('<table><tr><th>阿爾套裝盛典限定★5 阿爾套裝也慈&晶光花</th></tr></table>'), '阿爾盛典限定');
+  assert.equal(parsePairLimitedTag('<table><tr><th>盛典限定★5 丹帝&噴火龍</th></tr></table>'), '盛典限定');
 });
 
 test('從招式與被動描述解析天氣、場地、領域', () => {
@@ -216,9 +227,25 @@ test('第二個以上頁籤以「超級」開頭判斷為超級進化形態', ()
   assert.deepEqual(parsePairForms(single), []);
 });
 
-test('內文含拍組極巨化招式判斷為極巨化形態', () => {
+test('極巨化形態以招式表標籤「拍組極巨化招式」判定，被動內文提及不算', () => {
   const dyna = '<table class="move"><tr><td>拍組極巨化招式</td><td>超極巨天道七星</td></tr></table>';
   assert.deepEqual(parsePairForms(dyna), ['dyna']);
+
+  // 太晶拍組的被動泛指對手的物理拍組極巨化招式，不代表自身可極巨化（魁奇思&古劍豹）。
+  const passiveMention = '<table class="passive"><tr><td>增加對手受到物理拍組極巨化招式攻擊時造成的傷害。拍組太晶化時，降低對手防禦。</td></tr></table><table class="move"><tr><td>拍組招式</td><td>太晶爆發</td></tr></table>';
+  assert.deepEqual(parsePairForms(passiveMention), ['tera']);
+});
+
+test('超覺醒被動提供的鬥陣標記 sa，與一般來源共存時仍保留', () => {
+  const saTable = '<table class="passive"><tr><td>超覺醒被動技能：測試被動<br>首次上場時，<br>場地變成卡洛斯鬥陣（特殊）。</td></tr></table>';
+  assert.deepEqual(parsePairEffects(saTable).formations, [
+    { region: '卡洛斯', category: '特殊', ex: false, gridLevel: null, sa: true }
+  ]);
+
+  const mixed = saTable + '<table class="move"><tr><td>出招時，場地變成卡洛斯鬥陣（特殊）。</td></tr></table>';
+  assert.deepEqual(parsePairEffects(mixed).formations, [
+    { region: '卡洛斯', category: '特殊', ex: false, gridLevel: null, sa: true }
+  ]);
 });
 
 test('內文含太晶判斷為太晶化形態', () => {

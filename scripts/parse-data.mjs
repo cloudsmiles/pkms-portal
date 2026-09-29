@@ -109,7 +109,7 @@ function gridTiles(gridText) {
 
 // lv 為 null 代表來自招式／被動（不需石盤即可發動）；數字代表來自需該石盤等級的 tile。
 // 只要有任一來源是招式／被動，gridLevel 即為 null；否則取各 tile 的最低等級。
-// sa 代表該場效的來源之一是超覺醒被動技能（卡片上需標註「超」）。
+// sa 代表該場效／鬥陣的來源之一是超覺醒被動技能（卡片上需標註「超」）。
 function mergeGridEffect(map, key, payload, ex, lv, sa = false) {
   const prev = map.get(key);
   if (!prev) {
@@ -130,7 +130,7 @@ function scanBattleEffects(text, lv, fields, formations, sa = false) {
     if (def) mergeGridEffect(fields, `${def.kind}:${def.code}`, { kind: def.kind, code: def.code }, Boolean(match[1]), lv, sa);
   }
   for (const match of text.matchAll(FORMATION_PATTERN)) {
-    mergeGridEffect(formations, `${match[2]}:${match[3]}`, { region: match[2], category: match[3] }, Boolean(match[1]), lv);
+    mergeGridEffect(formations, `${match[2]}:${match[3]}`, { region: match[2], category: match[3] }, Boolean(match[1]), lv, sa);
   }
 }
 
@@ -142,7 +142,7 @@ export function parsePairEffects(html) {
   const fields = new Map();
   const formations = new Map();
   scanBattleEffects(baseText, null, fields, formations);
-  // 超覺醒被動表格：場效若由它提供，額外標註 sa（與是否同時有其他來源無關）。
+  // 超覺醒被動表格：場效／鬥陣若由它提供，額外標註 sa（與是否同時有其他來源無關）。
   const superAwakeningText = [...baseText.matchAll(/<table[^>]*class="[^"]*\bpassive\b[^"]*"[^>]*>([\s\S]*?)<\/table>/gi)]
     .map((match) => match[1])
     .filter((table) => stripTags(table).startsWith(SUPER_AWAKENING_PREFIX))
@@ -159,13 +159,14 @@ export function parsePairFieldEffects(html) {
   return parsePairEffects(html).fieldEffects;
 }
 
-// 特殊形態：偵測訊號與詳情頁 overrides/detail-ui.js 的 FORM_BADGES 判定一致。
-// 超級進化看第二個以上頁籤名（第一頁籤是基本形態）；極巨化／太晶化看內文關鍵字。
+// 特殊形態：超級進化看第二個以上頁籤名（第一頁籤是基本形態）；太晶化看內文關鍵字；
+// 極巨化以招式表的標籤欄 <td>拍組極巨化招式</td> 為訊號——被動文本（例：「增加對手受到物理
+// 拍組極巨化招式攻擊時造成的傷害」）只泛指對手招式，不代表自身可極巨化。
 const FORM_DETECTORS = [
   ['mega', (html, text) => [...html.matchAll(/<ul[^>]*class="[^"]*\btab\b[^"]*"[^>]*>([\s\S]*?)<\/ul>/gi)]
     .some((list) => [...list[1].matchAll(/<li[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/gi)].slice(1)
       .some((tab) => stripTags(tab[1]).startsWith('超級')))],
-  ['dyna', (_html, text) => text.includes('拍組極巨化招式')],
+  ['dyna', (html) => /<td>拍組極巨化招式<\/td>/.test(html)],
   ['tera', (_html, text) => text.includes('太晶')],
 ];
 
@@ -177,7 +178,8 @@ export function parsePairForms(html) {
 export function parsePairLimitedTag(html) {
   const title = html.match(/<th[^>]*>([\s\S]*?)<\/th>/i)?.[1];
   const plainTitle = title ? stripTags(title).replace(/\s+/g, ' ') : '';
-  return plainTitle.match(/^(.+?限定)(?=★\d)/)?.[1] ?? '';
+  const tag = plainTitle.match(/^(.+?限定)(?=★\d)/)?.[1] ?? '';
+  return tag === '阿爾套裝盛典限定' ? '阿爾盛典限定' : tag;
 }
 
 export function parsePairBaseTotal(html) {

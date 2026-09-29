@@ -259,9 +259,12 @@
     tera: { src: '../../assets/forms/tera.webp', label: '太晶化形態' },
   };
   const detectForm = (panel, tabText) => {
-    const text = panel.textContent;
-    if (text.includes('拍組極巨化招式')) return 'dyna';
-    if (text.includes('太晶')) return 'tera';
+    // 極巨化只認招式表的標籤欄；被動文本泛指對手的拍組極巨化招式（例：「增加對手受到特殊
+    // 拍組極巨化招式攻擊時造成的傷害」），不代表自身可極巨化。
+    const isDyna = [...panel.querySelectorAll('table.move')]
+      .some((table) => table.querySelector('tr:first-child td:first-child')?.textContent.trim().startsWith('拍組極巨化招式'));
+    if (isDyna) return 'dyna';
+    if (panel.textContent.includes('太晶')) return 'tera';
     if (tabText.startsWith('超級')) return 'mega';
     return null;
   };
