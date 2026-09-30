@@ -70,9 +70,18 @@ export function getPairLimitedTags(pairs) {
   return [...new Set(pairs.map((pair) => pair.limitedTag).filter(Boolean))].sort((left, right) => left.localeCompare(right, 'zh'));
 }
 
-export function sortPairs(pairs, mode = 'base-desc') {
+export function sortPairs(pairs, mode = 'release-desc') {
   const byBase = (left, right) => (right.baseTotal ?? 0) - (left.baseTotal ?? 0);
+  const byRelease = (left, right, ascending) => {
+    // 無上線日期者一律往後放；同期再按白值高→低。
+    if (!left.releaseDate && !right.releaseDate) return byBase(left, right);
+    if (!left.releaseDate) return 1;
+    if (!right.releaseDate) return -1;
+    const compare = left.releaseDate.localeCompare(right.releaseDate);
+    return (ascending ? compare : -compare) || byBase(left, right);
+  };
   return [...pairs].sort((left, right) => {
+    if (mode === 'release-desc' || mode === 'release-asc') return byRelease(left, right, mode === 'release-asc');
     if (mode === 'name-asc') return left.name.localeCompare(right.name, 'zh');
     if (mode === 'name-desc') return right.name.localeCompare(left.name, 'zh');
     if (mode === 'base-asc') return (left.baseTotal ?? 0) - (right.baseTotal ?? 0);
@@ -208,6 +217,7 @@ export function getFilterOptionLabel(filter, value) {
   if (filter === 'rank') return getRankTierLabel(Number(value));
   if (filter === 'role') return value === '物理攻擊型' ? '物攻' : value === '特殊攻擊型' ? '特攻' : value;
   if (filter === 'sort') return {
+    'release-desc': '上線新→舊', 'release-asc': '上線舊→新',
     'base-desc': '白值高→低', 'base-asc': '白值低→高',
     'name-asc': '名稱 A→Z', 'name-desc': '名稱 Z→A',
     'rank-desc': '等級高→低', 'rank-asc': '等級低→高',

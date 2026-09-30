@@ -7,7 +7,7 @@ import { sourcePath } from './web-path.mjs';
   // 多選篩選以陣列保存選中值（空陣列＝全部）；其餘維持單值 'all'。
   const createView = (tab) => (tab === 'events'
     ? { query: '', date: 'all', status: 'all', page: 1 }
-    : { query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], formation: [], sort: 'base-desc', page: 1 });
+    : { query: '', category: [], attribute: [], role: 'all', rank: [], limitedTag: [], fieldEffect: [], formation: [], sort: 'release-desc', page: 1 });
   const views = { pairs: createView('pairs'), events: createView('events') };
   const shared = { tab: 'pairs', pageSize: 12 };
   let state = views.pairs;
@@ -36,7 +36,7 @@ import { sourcePath } from './web-path.mjs';
         if (state[key].length) params.set(key, state[key].join(','));
       }
       if (state.role !== 'all') params.set('role', state.role);
-      if (state.sort !== 'base-desc') params.set('sort', state.sort);
+      if (state.sort !== 'release-desc') params.set('sort', state.sort);
     } else {
       if (state.date !== 'all') params.set('date', state.date);
       if (state.status !== 'all') params.set('status', state.status);
@@ -144,7 +144,7 @@ import { sourcePath } from './web-path.mjs';
     : '');
 
   function renderCard(record) {
-    if (shared.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}${location.search ? `?back=${encodeURIComponent(location.search)}` : ''}"><div class="pair-art">${record.image ? `<img class="pair-art-bg" loading="lazy" src="${sourcePath(record.image)}" alt="" onerror="this.hidden=true">` : ''}${record.image ? `<img class="pair-art-main" loading="lazy" src="${sourcePath(record.image)}" alt="${escapeHtml(record.name)}" onerror="this.hidden=true">` : ''}${exArtMarkup(record)}${formsMarkup(record.forms)}</div><div class="pair-meta"><span class="pair-topline">${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}${record.rank != null ? `<span class="pair-rank rank-fam-${rankFamily(record.rank)}" title="田雞榜等級">${getRankTierLabel(record.rank)}</span>` : ''}</span><span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${pairRoleTone(record.role)}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}${(record.fieldEffects ?? []).map(fieldEffectChip).join('')}${(record.formations ?? []).map(formationChip).join('')}</div></div></a></article>`;
+    if (shared.tab === 'pairs') return `<article class="pair-card ${attributeClass(record.attributes?.[0] ?? '')}"><a href="${sourcePath(record.href)}${location.search ? `?back=${encodeURIComponent(location.search)}` : ''}"><div class="pair-art">${record.image ? `<img class="pair-art-bg" loading="lazy" src="${sourcePath(record.image)}" alt="" onerror="this.hidden=true">` : ''}${record.image ? `<img class="pair-art-main" loading="lazy" src="${sourcePath(record.image)}" alt="${escapeHtml(record.name)}" onerror="this.hidden=true">` : ''}${exArtMarkup(record)}${formsMarkup(record.forms)}</div><div class="pair-meta"><span class="pair-topline">${record.releaseDate ? `<span class="pair-release" title="上線時間">${record.releaseDate.replaceAll('-', '/')}</span>` : ''}${record.baseTotal ? `<span class="pair-total">Lv.200 ${record.baseTotal}</span>` : ''}${record.rank != null ? `<span class="pair-rank rank-fam-${rankFamily(record.rank)}" title="田雞榜等級">${getRankTierLabel(record.rank)}</span>` : ''}</span><span class="pair-name">${escapeHtml(record.name)}</span><div class="pair-badges">${record.limitedTag ? `<span class="pair-limited-tag">${escapeHtml(record.limitedTag)}</span>` : ''}<span class="pair-category">${escapeHtml(record.category)}</span>${record.role ? `<span class="pair-role ${pairRoleTone(record.role)}">${escapeHtml(getPairRoleLabel(record.role))}</span>` : ''}${record.attributes?.map((attribute) => `<span class="attribute-chip ${attributeClass(attribute)}">${escapeHtml(attribute)}屬性</span>`).join('') ?? ''}${(record.fieldEffects ?? []).map(fieldEffectChip).join('')}${(record.formations ?? []).map(formationChip).join('')}</div></div></a></article>`;
     const status = eventStatus(record);
     return `<article class="event-card"><div class="event-visual">${record.image ? imageMarkup(record.image, record.title) : '<div class="event-art-empty" aria-hidden="true"></div>'}</div><div class="event-info"><div class="event-dates">${formatDate(record.start)} — ${formatDate(record.end)}<span class="event-status ${status}">${labels[status]}</span></div><h3 class="event-title">${escapeHtml(record.title)}</h3><p class="event-desc">${escapeHtml(record.description || '暫無活動說明')}</p></div></article>`;
   }
@@ -346,7 +346,7 @@ import { sourcePath } from './web-path.mjs';
     $('#search').value = '';
     ['role-filter', 'date-filter', 'status-filter', 'sort-filter'].forEach((id) => {
       const control = $(`#${id}`);
-      if (!control.hidden) control.value = id === 'sort-filter' ? 'base-desc' : 'all';
+      if (!control.hidden) control.value = id === 'sort-filter' ? 'release-desc' : 'all';
     });
     render();
   });

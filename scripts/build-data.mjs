@@ -2,6 +2,10 @@ import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
 import { parsePairRecords, parsePairAttributes, parsePairRole, parsePairLimitedTag, parsePairBaseTotal, parsePairEffects, parsePairForms, parseEventRecords } from './parse-data.mjs';
 import { getProjectDir } from './project-path.mjs';
 
@@ -23,6 +27,92 @@ async function loadRankMap() {
     return new Map();
   }
 }
+
+// 拍組上線時間以 icons 圖示內容「首次進版」日期為代理。直接讀新增（A）記錄會被
+// 兩種情況誤導：舊檔整批複製成新名字（C100，如阪木→坂木的字符修正）、同內容
+// 改名（R100）。解法是比對 blob：新進檔案若與父 commit 中某舊檔 blob 相同，便
+// 沿舊檔追溯到真正起源。git log 關閉改名偵測，讓目的地一律以 A 呈現；再對每個
+// 相關 commit 與其父 commit 並行各取一次 ls-tree，建立 path↔blob 對照。非 git
+// 環境或 log 失敗時，回傳一律解析為 null 的函式。
+async function loadIconReleaseResolver(projectDir) {
+  let logOutput;
+  try {
+    ({ stdout: logOutput } = await execFileAsync('git', ['-c', 'core.quotePath=false', 'log', '--no-renames', '--date=short', '--format=C:%H|%ad', '--name-status', '--', 'icons'], { cwd: projectDir, maxBuffer: 32 * 1024 * 1024 }));
+  } catch {
+    return () => null;
+  }
+  // addsByPath：path → [{sha, date}]；log 由新到舊，收集後反轉成由舊到新。
+  const addsByPath = new Map();
+  let currentCommit;
+  for (const line of logOutput.split('\n')) {
+    if (line.startsWith('C:')) {
+      const [sha, date] = line.slice(2).split('|');
+      currentCommit = { sha, date };
+    } else if (currentCommit && line.startsWith('A\t')) {
+      const path = line.slice(2).normalize('NFKC');
+      if (!addsByPath.has(path)) addsByPath.set(path, []);
+      addsByPath.get(path).push({ sha: currentCommit.sha, date: currentCommit.date });
+    }
+  }
+  for (const records of addsByPath.values()) records.reverse();
+
+  const wanted = new Set();
+  for (const records of addsByPath.values()) {
+    wanted.add(records[0].sha);
+    wanted.add(`${records[0].sha}^`);
+  }
+  const loadTree = async (key) => {
+    const byPath = new Map();
+    const byBlob = new Map();
+    try {
+      const { stdout } = await execFileAsync('git', ['-c', 'core.quotePath=false', 'ls-tree', '-z', '-r', key, '--', 'icons'], { cwd: projectDir, maxBuffer: 32 * 1024 * 1024 });
+      for (const entry of stdout.split('\0')) {
+        if (!entry) continue;
+        const tab = entry.indexOf('\t');
+        const [, type, blob] = entry.slice(0, tab).split(' ');
+        const path = entry.slice(tab + 1).normalize('NFKC');
+        if (type === 'blob') {
+          byPath.set(path, blob);
+          if (!byBlob.has(blob)) byBlob.set(blob, path);
+        }
+      }
+    } catch {
+      // 根 commit 的父查詢等：留空樹。
+    }
+    return { byPath, byBlob };
+  };
+  const keys = [...wanted];
+  const trees = new Map();
+  let cursor = 0;
+  const workers = [...Array(12)].map(async () => {
+    while (cursor < keys.length) {
+      const key = keys[cursor++];
+      trees.set(key, await loadTree(key));
+    }
+  });
+  await Promise.all(workers);
+
+  // 傳入相對於 sync-grid 根目錄的 icons/... 路徑，回傳真正起源日期；解析不出為 null。
+  return (relPath) => {
+    let path = relPath.normalize('NFKC');
+    for (let guard = 0; guard < 30; guard++) {
+      const records = addsByPath.get(path);
+      if (!records?.length) return null;
+      const first = records[0];
+      const blob = trees.get(first.sha)?.byPath.get(path);
+      const source = blob ? trees.get(`${first.sha}^`)?.byBlob.get(blob) : null;
+      if (!source || source === path) return first.date;
+      path = source;
+    }
+    return null;
+  };
+}
+
+// 取普通圖與 EX 圖中最早的起源日期（相對於 sync-grid 根目錄的 ./icons/... 路徑）。
+const releaseDateOf = (resolveRelease, ...images) => images
+  .map((image) => (image ? resolveRelease(image.replace(/^\.\//, '')) : ''))
+  .filter(Boolean)
+  .sort()[0] ?? null;
 
 // 屬性值用的 HTML 跳脫（拍組名含 &（）等字元）。
 const escapeHtmlAttr = (value) => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -120,7 +210,7 @@ export async function build() {
 
   const iconNames = await readdir(resolve(projectDir, 'icons'));
   const exIcons = new Map(iconNames.filter((name) => name.startsWith('★6ex_')).map((name) => [name.replace(/^★6ex_/, '').replace(/\.png$/i, '').normalize('NFKC'), name]));
-  const [readme, eventlog, rankMap] = await Promise.all([readFile(resolve(projectDir, 'README.md'), 'utf8'), readFile(resolve(projectDir, 'eventlog.html'), 'utf8'), loadRankMap()]);
+  const [readme, eventlog, rankMap, resolveRelease] = await Promise.all([readFile(resolve(projectDir, 'README.md'), 'utf8'), readFile(resolve(projectDir, 'eventlog.html'), 'utf8'), loadRankMap(), loadIconReleaseResolver(projectDir)]);
   const events = parseEventRecords(eventlog);
   const pairs = parsePairRecords(readme);
   const enrichedPairs = await Promise.all(pairs.map(async (pair) => {
@@ -129,12 +219,14 @@ export async function build() {
       const grid = await readFile(resolve(projectDir, pair.href.replace(/^\.\//, '')), 'utf8');
       const exImageName = exIcons.get(pair.name.normalize('NFKC'));
       const { fieldEffects, formations } = parsePairEffects(grid);
-      return { ...pair, rank, attributes: parsePairAttributes(grid), role: parsePairRole(grid), limitedTag: parsePairLimitedTag(grid), fieldEffects, formations, forms: parsePairForms(grid), exImage: exImageName ? `./icons/${exImageName}` : '', baseTotal: parsePairBaseTotal(grid) };
+      const exImage = exImageName ? `./icons/${exImageName}` : '';
+      return { ...pair, rank, releaseDate: releaseDateOf(resolveRelease, pair.image, exImage), attributes: parsePairAttributes(grid), role: parsePairRole(grid), limitedTag: parsePairLimitedTag(grid), fieldEffects, formations, forms: parsePairForms(grid), exImage, baseTotal: parsePairBaseTotal(grid) };
     } catch {
-      return { ...pair, rank, attributes: [], role: '', limitedTag: '', fieldEffects: [], formations: [], forms: [], exImage: '', baseTotal: 0 };
+      return { ...pair, rank, releaseDate: releaseDateOf(resolveRelease, pair.image), attributes: [], role: '', limitedTag: '', fieldEffects: [], formations: [], forms: [], exImage: '', baseTotal: 0 };
     }
   }));
-  enrichedPairs.sort((left, right) => right.baseTotal - left.baseTotal || left.name.localeCompare(right.name));
+  // 預設由上線新到舊；無日期者排最後，同期再按白值高→低、名稱。
+  enrichedPairs.sort((left, right) => (right.releaseDate || '').localeCompare(left.releaseDate || '') || right.baseTotal - left.baseTotal || left.name.localeCompare(right.name));
   const data = { pairs: enrichedPairs, events };
   await writeFile(resolve(distDir, 'data.js'), `window.SYNC_GRID_DATA = ${JSON.stringify(data)};\n`, 'utf8');
 

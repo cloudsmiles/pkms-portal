@@ -138,6 +138,7 @@ test('田雞榜等級提供 1~15 的繁中標籤（球級細分 1/2/3，自由�
   assert.ok(14 < 15);
   assert.equal(uiHelpers.getFilterOptionLabel('rank', '15'), '自由者');
   assert.equal(uiHelpers.getFilterOptionLabel('rank', '13'), '大師球');
+  assert.equal(uiHelpers.getFilterOptionLabel('sort', 'release-desc'), '上線新→舊');
   assert.equal(uiHelpers.getFilterOptionLabel('sort', 'rank-desc'), '等級高→低');
   assert.equal(uiHelpers.rankFamily(15), 'free');
   assert.equal(uiHelpers.rankFamily(14), 'champion');
@@ -162,6 +163,19 @@ test('依等級排序時上榜者在前、未上榜者在後', () => {
   ];
   assert.deepEqual(sortPairs(pairs, 'rank-desc').map((pair) => pair.name), ['冠軍', '大師', '新手1', '無榜']);
   assert.deepEqual(sortPairs(pairs, 'rank-asc').map((pair) => pair.name), ['新手1', '大師', '冠軍', '無榜']);
+});
+
+test('依上線日期排序時新→舊為預設、無日期者在後、同期按白值', () => {
+  const pairs = [
+    { name: '無日期', baseTotal: 999 },
+    { name: '舊', releaseDate: '2020-12-18', baseTotal: 100 },
+    { name: '新高白值', releaseDate: '2022-08-25', baseTotal: 300 },
+    { name: '新低白值', releaseDate: '2022-08-25', baseTotal: 200 },
+  ];
+  const expected = ['新高白值', '新低白值', '舊', '無日期'];
+  assert.deepEqual(sortPairs(pairs, 'release-desc').map((pair) => pair.name), expected);
+  assert.deepEqual(sortPairs(pairs).map((pair) => pair.name), expected);
+  assert.deepEqual(sortPairs(pairs, 'release-asc').map((pair) => pair.name), ['舊', '新高白值', '新低白值', '無日期']);
 });
 
 test('攻擊方式篩選只顯示詳情頁存在的類型', () => {

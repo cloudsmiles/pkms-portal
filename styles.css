@@ -218,9 +218,10 @@ h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
 .fieldeffect-select .fx-dot.attribute-17 { background: #ed9bb8; }
 .pair-total { float: right; color: var(--muted); font: 500 11px 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; }
 
-/* 卡片標題列：田雞榜等級徽章在左、Lv.200 白值在右 */
+/* 卡片標題列：上線日期在左、Lv.200 白值靠右、田雞榜等級在最右 */
 .pair-topline { display: flex; align-items: center; gap: 6px; min-height: 17px; }
 .pair-topline .pair-total { float: none; margin-left: auto; }
+.pair-release { color: var(--muted); font: 500 11px 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; white-space: nowrap; }
 .pair-rank {
   display: inline-block; padding: 2px 8px; border-radius: 8px;
   font-size: 10px; font-weight: 700; line-height: 1.5; white-space: nowrap;

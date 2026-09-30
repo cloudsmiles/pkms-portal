@@ -68,12 +68,13 @@ const FIELD_EFFECT_PATTERN = new RegExp(
 const FIELD_EFFECT_ORDER = new Map(FIELD_EFFECT_DEFS.map((def, index) => [`${def.kind}:${def.code}`, index]));
 
 // 鬥陣：設定句為「（我方）場地變成[ＥＸ]？{地區}鬥陣（{類別}）」，見於招式、被動與石盤 tile。
-// 與天氣／場地／領域互不撞名（鬥陣名以「鬥陣（…）」結尾）。條件句用「為Ｘ鬥陣」「延長Ｘ鬥陣」，
-// 沒有「變成…鬥陣（類別）」，故不會誤抓；「任一鬥陣」「任一地區鬥陣」也不在地區清單內。
+// 尾端擋下「的」「時」：條件句「我方場地變成Ｘ鬥陣（Ｙ）的瞬間在場上時，會延長…持續時間」
+// （只延長、不開陣的石盤 tile）與「場地變成Ｘ鬥陣（Ｙ）時，…」皆不計入。真正的開陣句
+// 之後只會接句號、換行、<br>、「和／、／＆」等列舉連接。「任一鬥陣」不在地區清單內。
 const FORMATION_REGIONS = ['關都', '城都', '豐緣', '神奧', '合眾', '卡洛斯', '阿羅拉', '伽勒爾', '帕底亞', '帕希歐'];
 const FORMATION_CATEGORY_ORDER = ['物理', '特殊', '物理／特殊', '防禦'];
 const FORMATION_PATTERN = new RegExp(
-  `場地變成(ＥＸ)?(${FORMATION_REGIONS.join('|')})鬥陣（(物理／特殊|物理|特殊|防禦)）`,
+  `場地變成(ＥＸ)?(${FORMATION_REGIONS.join('|')})鬥陣（(物理／特殊|物理|特殊|防禦)）(?![的時])`,
   'g',
 );
 const FORMATION_ORDER = new Map(
@@ -149,6 +150,12 @@ export function parsePairEffects(html) {
     .join('\n');
   if (superAwakeningText) scanBattleEffects(superAwakeningText, null, fields, formations, true);
   for (const tile of gridTiles(gridText)) scanBattleEffects(tile.desc, tile.lv, fields, formations);
+  // 「物理／特殊」鬥陣本身已涵蓋物理與特殊；同地區若有混合鬥陣，移除被動說明文字列舉
+  // 出的個別物理、特殊條目，避免重複晶片。
+  for (const key of [...formations.keys()]) {
+    const [region, category] = key.split(':');
+    if ((category === '物理' || category === '特殊') && formations.has(`${region}:物理／特殊`)) formations.delete(key);
+  }
   return {
     fieldEffects: [...fields.values()].sort((a, b) => FIELD_EFFECT_ORDER.get(`${a.kind}:${a.code}`) - FIELD_EFFECT_ORDER.get(`${b.kind}:${b.code}`)),
     formations: [...formations.values()].sort((a, b) => FORMATION_ORDER.get(`${a.region}:${a.category}`) - FORMATION_ORDER.get(`${b.region}:${b.category}`)),

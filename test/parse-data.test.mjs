@@ -183,14 +183,29 @@ test('解析鬥陣（地區＋類別），條件句與延長句不誤抓', () =>
     '當我方場地為伽勒爾鬥陣（防禦）時，招式威力提升。',
     '會延長帕底亞鬥陣（特殊）的持續時間。',
     '我方場地變成任一鬥陣時，會提高能力。',
-    '我方場地變成任一卡洛斯鬥陣時，會發動效果。'
+    '我方場地變成任一卡洛斯鬥陣時，會發動效果。',
+    // 真實資料的延長 tile：條件為「變成…的瞬間在場上時」，效果只有延長持續時間。
+    '我方場地變成城都鬥陣（特殊）的瞬間在場上時，會延長城都鬥陣（特殊）的持續時間。',
+    '我方場地變成合眾鬥陣（防禦）時，招式威力提升。'
   ].join('');
   assert.deepEqual(parsePairEffects(noise).formations, []);
+});
+
+test('只延長持續時間的石盤 tile 不計為鬥陣', () => {
+  const grid = `<script>json = [[1800101164, '城都鬥陣（特殊）時間延長', '我方場地變成\\n城都鬥陣（特殊）的瞬間在場上時，\\n會延長城都鬥陣（特殊）的持續時間。', 0, 0, 5, 'e1768a', 0, 0, []]];</script>`;
+  assert.deepEqual(parsePairEffects(grid).formations, []);
 });
 
 test('物理／特殊鬥陣能解析成獨立類別', () => {
   const { formations } = parsePairEffects('會讓我方場地變成帕底亞鬥陣（物理／特殊）。');
   assert.deepEqual(formations, [{ region: '帕底亞', category: '物理／特殊', ex: false, gridLevel: null }]);
+});
+
+test('物理／特殊鬥陣已涵蓋物理與特殊，說明文字列舉不重複產生晶片', () => {
+  const passive = '<table class="passive"><tr><td>首次拍組招式後場地變成城都鬥陣（物理／特殊）<br>首次使出拍組招式時，<br>會讓我方場地變成城都鬥陣（物理）和<br>城都鬥陣（特殊）。</td></tr></table>';
+  assert.deepEqual(parsePairEffects(passive).formations, [
+    { region: '城都', category: '物理／特殊', ex: false, gridLevel: null }
+  ]);
 });
 
 test('只在石盤 tile 的場效／鬥陣會標上所需石盤等級，招式被動有的則不標', () => {
