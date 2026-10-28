@@ -10,3 +10,4 @@ yarn-error.log*
 data.js
 .superpowers/
 scripts/.font-venv/
+rank/.venv/
