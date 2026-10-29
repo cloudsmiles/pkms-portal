@@ -123,9 +123,9 @@ test('多選篩選（陣列）正確計入啟用數量', () => {
   }), 3);
 });
 
-test('田雞榜等級提供 1~15 的繁中標籤（球級細分 1/2/3，自由者最高）', () => {
+test('田雞榜等級提供 1~15 的繁中標籤（球級細分 1/2/3，王者最高）', () => {
   assert.deepEqual(uiHelpers.rankLevels.map((tier) => tier.value), Array.from({ length: 15 }, (_, i) => 15 - i));
-  assert.equal(uiHelpers.getRankTierLabel(15), '自由者');
+  assert.equal(uiHelpers.getRankTierLabel(15), '王者');
   assert.equal(uiHelpers.getRankTierLabel(14), '冠軍');
   assert.equal(uiHelpers.getRankTierLabel(13), '大師球');
   assert.equal(uiHelpers.getRankTierLabel(12), '高級球3');
@@ -133,14 +133,14 @@ test('田雞榜等級提供 1~15 的繁中標籤（球級細分 1/2/3，自由�
   assert.equal(uiHelpers.getRankTierLabel(9), '超級球3');
   assert.equal(uiHelpers.getRankTierLabel(1), '新手1');
   assert.equal(uiHelpers.getRankTierLabel(null), '');
-  // 超級球3 < 高級球1：數值上 9 < 10；冠軍 < 自由者 14 < 15。
+  // 超級球3 < 高級球1：數值上 9 < 10；冠軍 < 王者 14 < 15。
   assert.ok(9 < 10);
   assert.ok(14 < 15);
-  assert.equal(uiHelpers.getFilterOptionLabel('rank', '15'), '自由者');
+  assert.equal(uiHelpers.getFilterOptionLabel('rank', '15'), '王者');
   assert.equal(uiHelpers.getFilterOptionLabel('rank', '13'), '大師球');
   assert.equal(uiHelpers.getFilterOptionLabel('sort', 'release-desc'), '上線新→舊');
   assert.equal(uiHelpers.getFilterOptionLabel('sort', 'rank-desc'), '等級高→低');
-  assert.equal(uiHelpers.rankFamily(15), 'free');
+  assert.equal(uiHelpers.rankFamily(15), 'king');
   assert.equal(uiHelpers.rankFamily(14), 'champion');
   assert.equal(uiHelpers.rankFamily(12), 'hyper');
   assert.equal(uiHelpers.rankFamily(7), 'super');

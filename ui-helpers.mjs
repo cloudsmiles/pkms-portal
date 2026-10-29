@@ -10,19 +10,19 @@ export function getViewFilters(tab) {
 }
 
 // 田雞榜等級：1~15 的梯子。四個球級（新手/精靈球/超級球/高級球）各分 1<2<3 三檔，
-// 球級之間「高級球1」高於「超級球3」；大師球(13)、冠軍(14)無子級，自由者(15)為最高、
-// 彩色漸層。值越大越強。
+// 球級之間「高級球1」高於「超級球3」；大師球(13)、冠軍(14)無子級，王者(15)為最高、
+// 閃金漸層（歸零化境閃金橫幅與彩虹星形兩種徽章同位）。值越大越強。
 const RANK_BALL_NAMES = ['新手', '精靈球', '超級球', '高級球'];
 
 export function rankFamily(rank) {
-  if (rank === 15) return 'free';
+  if (rank === 15) return 'king';
   if (rank === 14) return 'champion';
   if (rank === 13) return 'master';
   return ['novice', 'poke', 'super', 'hyper'][Math.floor((rank - 1) / 3)] ?? 'novice';
 }
 
 function rankLevelLabel(value) {
-  if (value === 15) return '自由者';
+  if (value === 15) return '王者';
   if (value === 14) return '冠軍';
   if (value === 13) return '大師球';
   const tier = Math.floor((value - 1) / 3);
