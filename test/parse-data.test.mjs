@@ -289,3 +289,22 @@ test('活動狀態按指定日期判斷進行中、即將開始與已結束', ()
   assert.equal(getEventStatus({ start: '2026-09-05T14:00:00', end: '2026-09-13T14:00:00' }, new Date('2026-08-30')), 'upcoming');
   assert.equal(getEventStatus({ start: '2026-08-01T14:00:00', end: '2026-08-13T14:00:00' }, new Date('2026-08-30')), 'ended');
 });
+
+test('拍組名稱含學院且非季節限定時標記為學院限定', async () => {
+  const { parsePairLimitedTag } = await import('../scripts/parse-data.mjs');
+  const title = '<table><tr><th>★5 小勝（學院）♂&武道熊師♂</th></tr></table>';
+  assert.equal(parsePairLimitedTag(title, '小勝(學院)&武道熊師'), '學院限定');
+  assert.equal(parsePairLimitedTag(title, '小勝(学院)&武道熊師'), '學院限定');
+});
+
+test('學院拍組若明確是季節限定則保留季節限定', async () => {
+  const { parsePairLimitedTag } = await import('../scripts/parse-data.mjs');
+  const title = '<table><tr><th>季節限定★5 學院拍組</th></tr></table>';
+  assert.equal(parsePairLimitedTag(title, '學院拍組'), '季節限定');
+});
+
+test('特別套裝限定的學院拍組不改標為學院限定', async () => {
+  const { parsePairLimitedTag } = await import('../scripts/parse-data.mjs');
+  const title = '<table><tr><th>特別套裝限定★5 卡蕪（學院）♂&噴火駝♂</th></tr></table>';
+  assert.equal(parsePairLimitedTag(title, '卡蕪(學院)&噴火駝'), '特別套裝限定');
+});

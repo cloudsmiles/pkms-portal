@@ -220,9 +220,9 @@ export async function build() {
       const exImageName = exIcons.get(pair.name.normalize('NFKC'));
       const { fieldEffects, formations } = parsePairEffects(grid);
       const exImage = exImageName ? `./icons/${exImageName}` : '';
-      return { ...pair, rank, releaseDate: releaseDateOf(resolveRelease, pair.image, exImage), attributes: parsePairAttributes(grid), role: parsePairRole(grid), limitedTag: parsePairLimitedTag(grid), fieldEffects, formations, forms: parsePairForms(grid), exImage, baseTotal: parsePairBaseTotal(grid) };
+      return { ...pair, rank, releaseDate: releaseDateOf(resolveRelease, pair.image, exImage), attributes: parsePairAttributes(grid), role: parsePairRole(grid), limitedTag: parsePairLimitedTag(grid, pair.name), fieldEffects, formations, forms: parsePairForms(grid), exImage, baseTotal: parsePairBaseTotal(grid) };
     } catch {
-      return { ...pair, rank, releaseDate: releaseDateOf(resolveRelease, pair.image), attributes: [], role: '', limitedTag: '', fieldEffects: [], formations: [], forms: [], exImage: '', baseTotal: 0 };
+      return { ...pair, rank, releaseDate: releaseDateOf(resolveRelease, pair.image), attributes: [], role: '', limitedTag: parsePairLimitedTag('', pair.name), fieldEffects: [], formations: [], forms: [], exImage: '', baseTotal: 0 };
     }
   }));
   // 預設由上線新到舊；無日期者排最後，同期再按白值高→低、名稱。

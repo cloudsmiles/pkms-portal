@@ -182,11 +182,15 @@ export function parsePairForms(html) {
   return FORM_DETECTORS.filter(([, detect]) => detect(html, text)).map(([form]) => form);
 }
 
-export function parsePairLimitedTag(html) {
+export function parsePairLimitedTag(html, pairName = '') {
   const title = html.match(/<th[^>]*>([\s\S]*?)<\/th>/i)?.[1];
   const plainTitle = title ? stripTags(title).replace(/\s+/g, ' ') : '';
   const tag = plainTitle.match(/^(.+?限定)(?=★\d)/)?.[1] ?? '';
-  return tag === '阿爾套裝盛典限定' ? '阿爾盛典限定' : tag;
+  const normalizedTag = tag === '阿爾套裝盛典限定' ? '阿爾盛典限定' : tag;
+  // Sync-Grid 對學院拍組沿用一般限定標題，學院身分只出現在拍組名稱中。
+  // 學院限定不是季節限定；若標題已有季節限定，保留原標籤避免誤分類。
+  if (!normalizedTag.includes('季節') && !normalizedTag.includes('特別套裝') && /學院|学院/.test(pairName)) return '學院限定';
+  return normalizedTag;
 }
 
 export function parsePairBaseTotal(html) {
